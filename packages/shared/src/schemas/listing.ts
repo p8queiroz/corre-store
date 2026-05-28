@@ -17,6 +17,7 @@ export const createListingSchema = z.object({
   city: z.string().min(2).max(80),
   state: z.string().min(2).max(80),
   tags: z.array(z.string().max(40)).max(15).default([]),
+  imageUrls: z.array(z.string().min(1)).max(8).default([]),
 });
 
 export const updateListingSchema = createListingSchema.partial();

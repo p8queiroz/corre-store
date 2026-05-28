@@ -97,6 +97,37 @@ export const authService = {
     };
   },
 
+  async becomeSeller(userId: string) {
+    const existing = await prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { name: true, role: true },
+    });
+
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        role: existing.role === UserRole.ADMIN ? UserRole.ADMIN : UserRole.SELLER,
+        sellerProfile: {
+          upsert: {
+            create: {
+              displayName: existing.name,
+              moderationNote: "Pending seller review",
+            },
+            update: {},
+          },
+        },
+      },
+      include: { sellerProfile: true },
+    });
+
+    return {
+      userId: user.id,
+      email: user.email,
+      role: user.role,
+      name: user.name,
+    };
+  },
+
   async verifyEmail(token: string) {
     const tokenHash = hashToken(token);
     const record = await prisma.emailToken.findFirst({

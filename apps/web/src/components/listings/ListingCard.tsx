@@ -7,6 +7,7 @@ import {
   Chip,
   Typography,
 } from "@mui/material";
+import { resolveMediaUrl } from "@/lib/media";
 
 export interface ListingCardProps {
   slug: string;
@@ -34,6 +35,8 @@ export function ListingCard({
   imageUrl,
   categoryName,
 }: ListingCardProps) {
+  const resolvedImageUrl = resolveMediaUrl(imageUrl);
+
   return (
     <Card sx={{ height: "100%" }}>
       <CardActionArea component={Link} href={`/listings/${slug}`} sx={{ height: "100%" }}>
@@ -42,7 +45,7 @@ export function ListingCard({
           sx={{
             height: 180,
             bgcolor: "grey.200",
-            backgroundImage: imageUrl ? `url(${imageUrl})` : undefined,
+            backgroundImage: resolvedImageUrl ? `url("${resolvedImageUrl}")` : undefined,
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}

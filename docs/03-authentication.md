@@ -37,6 +37,10 @@ sequenceDiagram
 
 `asSeller: true` creates `UserRole.SELLER` plus a `SellerProfile` in `PENDING` moderation state.
 
+Existing buyers can enable seller tools from `/sell`. The page calls
+`POST /auth/become-seller`, which promotes the current session to `SELLER` and
+upserts the related `SellerProfile` without exposing admin role changes.
+
 ## Flow: Login
 
 1. Validate credentials with `bcrypt.compare`

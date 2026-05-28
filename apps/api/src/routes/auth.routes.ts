@@ -44,6 +44,24 @@ authRouter.get("/me", async (req, res) => {
   res.json({ user: session });
 });
 
+authRouter.post("/become-seller", async (req, res, next) => {
+  try {
+    const session = req.session as SessionData & { save: () => Promise<void> };
+    if (!session?.userId) {
+      res.status(401).json({ error: "Not authenticated" });
+      return;
+    }
+
+    const user = await authService.becomeSeller(session.userId);
+    session.role = user.role as SessionData["role"];
+    session.email = user.email;
+    await session.save();
+    res.json({ user });
+  } catch (e) {
+    next(e);
+  }
+});
+
 authRouter.post("/verify-email", async (req, res, next) => {
   try {
     const result = await authService.verifyEmail(req.body.token);

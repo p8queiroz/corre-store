@@ -19,6 +19,14 @@ sequenceDiagram
 
 Route: `apps/api/src/routes/upload.routes.ts`
 
+Static serving: `apps/api/src/index.ts` mounts `express.static` on `/uploads`
+after the upload router. The API also creates `STORAGE_LOCAL_PATH` on startup so
+local uploads do not fail when the folder is missing.
+
+Frontend URL handling: `apps/web/src/lib/media.ts` prefixes only `/uploads/...`
+URLs with `NEXT_PUBLIC_API_URL`. Public web assets such as
+`/placeholders/shoe-1.jpg` stay relative to the Next.js app.
+
 ## Validation layers
 
 1. **Client** — file input `accept="image/*"` (UX only, not security)
@@ -51,7 +59,7 @@ await s3.upload({ Key: `listings/${id}/main.webp`, Body: optimized });
 
 ## Frontend (roadmap)
 
-- Drag-and-drop zone with preview
+- Seller form upload control with selected-file count
 - Lazy loading: `loading="lazy"` on `ListingCard`
 - Next.js `<Image>` with remote patterns in `next.config.ts`
 

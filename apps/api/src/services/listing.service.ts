@@ -104,17 +104,31 @@ export const listingService = {
 
   async create(sellerId: string, raw: CreateListingInput) {
     const data = createListingSchema.parse(raw);
+    const { imageUrls, ...listingData } = data;
     let slug = slugify(data.title);
     const exists = await prisma.listing.findUnique({ where: { slug } });
     if (exists) slug = `${slug}-${Date.now()}`;
 
+    const sellerProfile = await prisma.sellerProfile.findUnique({
+      where: { userId: sellerId },
+    });
+
     const listing = await prisma.listing.create({
       data: {
-        ...data,
+        ...listingData,
         slug,
         sellerId,
+        sellerProfileId: sellerProfile?.id,
         status: ListingStatus.PENDING_REVIEW,
         moderation: ModerationDecision.PENDING,
+        images: imageUrls.length
+          ? {
+              create: imageUrls.map((url, sortOrder) => ({
+                url,
+                sortOrder,
+              })),
+            }
+          : undefined,
       },
     });
 

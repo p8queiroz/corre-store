@@ -11,6 +11,7 @@ import { getApolloClient } from "@/lib/apollo-server";
 import { LISTING_DETAIL_QUERY } from "@/graphql/queries";
 import { notFound } from "next/navigation";
 import { ContactSellerButton } from "@/components/listings/ContactSellerButton";
+import { resolveMediaUrl } from "@/lib/media";
 
 function formatPrice(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {
@@ -33,6 +34,7 @@ export default async function ListingDetailPage({
 
   const listing = data?.listing;
   if (!listing) notFound();
+  const heroImageUrl = resolveMediaUrl(listing.images?.[0]?.url);
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
@@ -43,9 +45,7 @@ export default async function ListingDetailPage({
               height: 400,
               borderRadius: 3,
               bgcolor: "grey.200",
-              backgroundImage: listing.images?.[0]?.url
-                ? `url(${listing.images[0].url})`
-                : undefined,
+              backgroundImage: heroImageUrl ? `url("${heroImageUrl}")` : undefined,
               backgroundSize: "cover",
             }}
           />

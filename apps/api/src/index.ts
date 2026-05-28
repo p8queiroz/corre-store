@@ -9,6 +9,7 @@
  * - Jobs enqueued to worker via BackgroundJob table
  */
 import { createServer } from "node:http";
+import { mkdirSync } from "node:fs";
 import cors from "cors";
 import express, { type Request, type Response } from "express";
 import helmet from "helmet";
@@ -25,6 +26,7 @@ import { globalRateLimiter } from "./middleware/rate-limit.js";
 import { errorHandler } from "./middleware/error-handler.js";
 
 const app = express();
+mkdirSync(env.STORAGE_LOCAL_PATH, { recursive: true });
 
 app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(
@@ -43,6 +45,7 @@ app.get("/health", (_req, res) => {
 
 app.use("/auth", authRouter);
 app.use("/uploads", uploadRouter);
+app.use("/uploads", express.static(env.STORAGE_LOCAL_PATH));
 
 app.all(
   "/graphql",
