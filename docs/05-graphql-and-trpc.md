@@ -55,6 +55,16 @@ const create = trpc.listings.create.useMutation();
 await create.mutateAsync(formData);
 ```
 
+### Seller listing management
+
+Authenticated seller workflows stay in tRPC:
+
+- `listings.listMine` returns the signed-in seller's listings, including image, category, status, and moderation state.
+- `listings.getMine` loads one seller-owned listing for editing.
+- `listings.updateMine` updates supported listing fields and replaces the listing image URL set when `imageUrls` is provided.
+
+Seller procedures use `roleProcedure("SELLER")`, so regular users must enable seller tools before using them. The service also checks listing ownership server-side; admins retain access through the existing role hierarchy. Edited listings are set back to `PENDING_REVIEW` with `PENDING` moderation and enqueue the existing moderation and embedding jobs.
+
 ### superjson
 
 Handles `Date`, `Map`, etc. between server and client — configured in `initTRPC` and tRPC client.

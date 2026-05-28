@@ -45,6 +45,16 @@ export const HOMEPAGE_QUERY = gql`
   }
 `;
 
+export const CATEGORIES_QUERY = gql`
+  query Categories {
+    categories {
+      id
+      slug
+      name
+    }
+  }
+`;
+
 export const SEARCH_LISTINGS_QUERY = gql`
   query SearchListings(
     $q: String

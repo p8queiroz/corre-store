@@ -3,6 +3,8 @@ import {
   createListingSchema,
   searchListingsSchema,
   type CreateListingInput,
+  type UpdateListingInput,
+  updateListingSchema,
 } from "@stride/shared";
 import { AppError } from "../middleware/error-handler.js";
 import { enqueueJob } from "./queue.service.js";
@@ -136,6 +138,76 @@ export const listingService = {
     await enqueueJob(JOB_QUEUES.AI_EMBEDDING, { listingId: listing.id });
 
     return listing;
+  },
+
+  async listMine(userId: string, role: string) {
+    return prisma.listing.findMany({
+      where: role === "ADMIN" ? {} : { sellerId: userId },
+      take: 100,
+      orderBy: { updatedAt: "desc" },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        category: true,
+      },
+    });
+  },
+
+  async getMine(userId: string, role: string, listingId: string) {
+    const listing = await prisma.listing.findUnique({
+      where: { id: listingId },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        category: true,
+      },
+    });
+
+    if (!listing) {
+      throw new AppError(404, "Listing not found", "NOT_FOUND");
+    }
+    if (role !== "ADMIN" && listing.sellerId !== userId) {
+      throw new AppError(403, "You can only manage your own listings", "FORBIDDEN");
+    }
+
+    return listing;
+  },
+
+  async updateMine(
+    userId: string,
+    role: string,
+    listingId: string,
+    raw: UpdateListingInput
+  ) {
+    const existing = await this.getMine(userId, role, listingId);
+    const data = updateListingSchema.parse(raw);
+    const { imageUrls, ...listingData } = data;
+
+    const updated = await prisma.listing.update({
+      where: { id: existing.id },
+      data: {
+        ...listingData,
+        status: ListingStatus.PENDING_REVIEW,
+        moderation: ModerationDecision.PENDING,
+        moderationNote: null,
+        publishedAt: null,
+        ...(imageUrls
+          ? {
+              images: {
+                deleteMany: {},
+                create: imageUrls.map((url, sortOrder) => ({ url, sortOrder })),
+              },
+            }
+          : {}),
+      },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        category: true,
+      },
+    });
+
+    await enqueueJob(JOB_QUEUES.AI_MODERATION, { listingId: updated.id });
+    await enqueueJob(JOB_QUEUES.AI_EMBEDDING, { listingId: updated.id });
+
+    return updated;
   },
 
   async getFeatured(limit = 8) {

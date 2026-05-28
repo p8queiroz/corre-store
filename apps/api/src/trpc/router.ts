@@ -3,6 +3,7 @@ import {
   aiListingAssistSchema,
   createListingSchema,
   naturalLanguageSearchSchema,
+  updateListingSchema,
 } from "@stride/shared";
 import { router, publicProcedure, protectedProcedure, roleProcedure } from "./trpc.js";
 import { listingService } from "../services/listing.service.js";
@@ -28,6 +29,32 @@ export const appRouter = router({
       .input(createListingSchema)
       .mutation(({ ctx, input }) =>
         listingService.create(ctx.session.userId, input)
+      ),
+
+    listMine: roleProcedure("SELLER").query(({ ctx }) =>
+      listingService.listMine(ctx.session.userId, ctx.session.role)
+    ),
+
+    getMine: roleProcedure("SELLER")
+      .input(z.object({ listingId: z.string().cuid() }))
+      .query(({ ctx, input }) =>
+        listingService.getMine(ctx.session.userId, ctx.session.role, input.listingId)
+      ),
+
+    updateMine: roleProcedure("SELLER")
+      .input(
+        z.object({
+          listingId: z.string().cuid(),
+          data: updateListingSchema,
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        listingService.updateMine(
+          ctx.session.userId,
+          ctx.session.role,
+          input.listingId,
+          input.data
+        )
       ),
   }),
 

@@ -59,9 +59,11 @@ await s3.upload({ Key: `listings/${id}/main.webp`, Body: optimized });
 
 ## Frontend (roadmap)
 
-- Seller form upload control with selected-file count
+- Seller create/edit forms upload listing images and store returned URLs on `ListingImage`
 - Lazy loading: `loading="lazy"` on `ListingCard`
 - Next.js `<Image>` with remote patterns in `next.config.ts`
+
+The seller edit form manages images by keeping the existing image URL list, removing URLs locally when the seller clicks remove, uploading any newly selected files through `/uploads/listing-images`, and then saving the final ordered URL list through `listings.updateMine`. The backend replaces the `ListingImage` rows for that listing inside the update.
 
 ## Exercise
 

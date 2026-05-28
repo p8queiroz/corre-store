@@ -77,6 +77,9 @@ export function SiteHeader() {
           <Button component={Link} href="/sell" variant="contained" color="secondary">
             Sell
           </Button>
+          <Button component={Link} href="/seller" variant="outlined">
+            My listings
+          </Button>
           <IconButton component={Link} href="/favorites" aria-label="Favorites">
             <FavoriteBorderIcon />
           </IconButton>

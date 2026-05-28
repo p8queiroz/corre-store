@@ -10,6 +10,8 @@ apps/web/src/app/
   category/[slug]/page.tsx
   (auth)/login|register/
   sell/page.tsx            # Seller form + AI assist (tRPC)
+  seller/page.tsx          # Seller-owned listing overview
+  seller/listings/[id]/edit/page.tsx # Seller listing edit form
   favorites/page.tsx
   admin/page.tsx           # Protected admin (wire middleware)
 ```
@@ -21,6 +23,7 @@ apps/web/src/app/
 | Server Component + `getApolloClient()` | SEO-friendly listing detail, homepage |
 | Client `useQuery` (Apollo) | Interactive search |
 | Client `trpc.*.useMutation` | Forms, AI, favorites |
+| Client `trpc.*.useQuery` | Authenticated seller/admin dashboards |
 
 See `apps/web/src/lib/apollo-server.ts` for RSC integration.
 
@@ -49,6 +52,12 @@ Same schema validates on API — **no drift** between client and server.
 | `SiteHeader` | Search bar, nav, sell CTA |
 | `ListingCard` | Grid tile with price + location |
 | `AiSearchHero` | NL discovery entry point |
+
+## Seller listing management
+
+The `/seller` page lets signed-in sellers see only listings they own, with price, category, location, images, listing status, moderation state, and moderation note. Regular users see the existing seller-tools upgrade flow before they can manage listings.
+
+The `/seller/listings/[id]/edit` page reuses the listing Zod schema, Material UI form controls, GraphQL categories query, and existing REST upload route. Sellers can update title, description, category, condition, price, city, state, tags, and images. Saving sends the listing back through the current moderation flow.
 
 ## Accessibility & SEO
 
