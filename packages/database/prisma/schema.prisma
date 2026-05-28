@@ -1,0 +1,370 @@
+// =============================================================================
+// StrideMarket — Prisma schema
+// =============================================================================
+// Educational marketplace data model for a single niche: running gear.
+// See docs/04-database.md for entity relationships and design decisions.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Enums — shared vocabulary across API, worker, and frontend (via @stride/shared)
+// ---------------------------------------------------------------------------
+
+enum UserRole {
+  USER
+  SELLER
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+enum ListingStatus {
+  DRAFT
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  SOLD
+  REJECTED
+  REMOVED
+}
+
+enum ListingCondition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  FOR_PARTS
+}
+
+enum ModerationDecision {
+  PENDING
+  APPROVED
+  REJECTED
+  FLAGGED
+}
+
+enum InquiryStatus {
+  OPEN
+  REPLIED
+  CLOSED
+}
+
+enum JobStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum EmailType {
+  WELCOME
+  VERIFY_EMAIL
+  FORGOT_PASSWORD
+  PASSWORD_RESET
+  SELLER_APPROVED
+  LISTING_APPROVED
+  LISTING_REJECTED
+  INQUIRY_NOTIFICATION
+  GENERIC
+}
+
+// ---------------------------------------------------------------------------
+// Users & authentication
+// ---------------------------------------------------------------------------
+
+model User {
+  id                String     @id @default(cuid())
+  email             String     @unique
+  emailVerifiedAt   DateTime?
+  passwordHash      String
+  name              String
+  avatarUrl         String?
+  role              UserRole   @default(USER)
+  status            UserStatus @default(PENDING_VERIFICATION)
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+
+  sellerProfile     SellerProfile?
+  listings          Listing[]          @relation("SellerListings")
+  favorites         Favorite[]
+  inquiriesSent     Inquiry[]          @relation("BuyerInquiries")
+  refreshTokens     RefreshToken[]
+  emailTokens       EmailToken[]
+  reportsFiled      Report[]           @relation("Reporter")
+  chatSessions      ChatSession[]
+
+  @@index([email])
+  @@index([role])
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model EmailToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String   // verify | reset
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, type])
+}
+
+// ---------------------------------------------------------------------------
+// Seller onboarding
+// ---------------------------------------------------------------------------
+
+model SellerProfile {
+  id              String    @id @default(cuid())
+  userId          String    @unique
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  displayName     String
+  bio             String?
+  city            String?
+  state           String?
+  isVerified      Boolean   @default(false)
+  moderationNote  String?
+  approvedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  listings        Listing[]
+  inquiries       Inquiry[] @relation("SellerInquiries")
+
+  @@index([userId])
+}
+
+// ---------------------------------------------------------------------------
+// Catalog — single niche, multiple subcategories
+// ---------------------------------------------------------------------------
+
+model Category {
+  id          String    @id @default(cuid())
+  slug        String    @unique
+  name        String
+  description String?
+  icon        String?
+  sortOrder   Int       @default(0)
+  parentId    String?
+  parent      Category? @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  listings    Listing[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([slug])
+}
+
+model Listing {
+  id              String           @id @default(cuid())
+  sellerId        String
+  seller          User             @relation("SellerListings", fields: [sellerId], references: [id])
+  sellerProfileId String?
+  sellerProfile   SellerProfile?   @relation(fields: [sellerProfileId], references: [id])
+  categoryId      String
+  category        Category         @relation(fields: [categoryId], references: [id])
+  title           String
+  slug            String           @unique
+  description     String
+  priceCents      Int
+  condition       ListingCondition
+  city            String
+  state           String
+  tags            String[]
+  status          ListingStatus    @default(DRAFT)
+  moderation      ModerationDecision @default(PENDING)
+  moderationNote  String?
+  viewCount       Int              @default(0)
+  favoriteCount   Int              @default(0)
+  soldAt          DateTime?
+  publishedAt     DateTime?
+  featured        Boolean          @default(false)
+  trendingScore   Float            @default(0)
+  // AI-generated metadata (embedding stored for semantic search)
+  embedding       Float[]          @default([])
+  aiSummary       String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  images          ListingImage[]
+  favorites       Favorite[]
+  inquiries       Inquiry[]
+  reports         Report[]
+  moderationLogs  ModerationLog[]
+
+  @@index([status, publishedAt])
+  @@index([categoryId])
+  @@index([sellerId])
+  @@index([featured])
+  @@index([trendingScore])
+}
+
+model ListingImage {
+  id          String   @id @default(cuid())
+  listingId   String
+  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  url         String
+  thumbnailUrl String?
+  sortOrder   Int      @default(0)
+  altText     String?
+  createdAt   DateTime @default(now())
+
+  @@index([listingId])
+}
+
+// ---------------------------------------------------------------------------
+// Engagement
+// ---------------------------------------------------------------------------
+
+model Favorite {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, listingId])
+  @@index([userId])
+}
+
+model Inquiry {
+  id              String        @id @default(cuid())
+  listingId       String
+  listing         Listing       @relation(fields: [listingId], references: [id])
+  buyerId         String
+  buyer           User          @relation("BuyerInquiries", fields: [buyerId], references: [id])
+  sellerProfileId String
+  sellerProfile   SellerProfile @relation("SellerInquiries", fields: [sellerProfileId], references: [id])
+  message         String
+  status          InquiryStatus @default(OPEN)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([listingId])
+  @@index([buyerId])
+  @@index([sellerProfileId])
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  listingId   String?
+  listing     Listing? @relation(fields: [listingId], references: [id])
+  reporterId  String
+  reporter    User     @relation("Reporter", fields: [reporterId], references: [id])
+  reason      String
+  details     String?
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+
+  @@index([listingId])
+}
+
+// ---------------------------------------------------------------------------
+// Platform content (admin-managed)
+// ---------------------------------------------------------------------------
+
+model HomepageBanner {
+  id        String   @id @default(cuid())
+  title     String
+  subtitle  String?
+  imageUrl  String
+  linkUrl   String?
+  sortOrder Int      @default(0)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// ---------------------------------------------------------------------------
+// AI & moderation audit trail
+// ---------------------------------------------------------------------------
+
+model ModerationLog {
+  id         String             @id @default(cuid())
+  listingId  String
+  listing    Listing            @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  source     String             // ai | admin | system
+  decision   ModerationDecision
+  score      Float?
+  reason     String?
+  createdAt  DateTime           @default(now())
+
+  @@index([listingId])
+}
+
+model ChatSession {
+  id        String        @id @default(cuid())
+  userId    String?
+  user      User?         @relation(fields: [userId], references: [id])
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  messages  ChatMessage[]
+}
+
+model ChatMessage {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  role      String      // user | assistant
+  content   String
+  createdAt DateTime    @default(now())
+
+  @@index([sessionId])
+}
+
+// ---------------------------------------------------------------------------
+// Background jobs & email queue (educational — mirrors production patterns)
+// ---------------------------------------------------------------------------
+
+model BackgroundJob {
+  id          String    @id @default(cuid())
+  queue       String
+  payload     Json
+  status      JobStatus @default(PENDING)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(3)
+  error       String?
+  scheduledAt DateTime  @default(now())
+  startedAt   DateTime?
+  completedAt DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@index([queue, status, scheduledAt])
+}
+
+model EmailOutbox {
+  id          String    @id @default(cuid())
+  to          String
+  subject     String
+  htmlBody    String
+  type        EmailType
+  status      JobStatus @default(PENDING)
+  sentAt      DateTime?
+  error       String?
+  createdAt   DateTime  @default(now())
+
+  @@index([status, createdAt])
+}

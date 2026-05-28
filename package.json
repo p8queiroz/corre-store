@@ -1,0 +1,29 @@
+{
+  "name": "stride-market",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Educational niche marketplace monorepo — running gear (OLX-style learning project)",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
+    "dev:api": "npm run dev -w @stride/api",
+    "dev:web": "npm run dev -w @stride/web",
+    "dev:worker": "npm run dev -w @stride/worker",
+    "build": "npm run build --workspaces --if-present",
+    "db:generate": "npm run generate -w @stride/database",
+    "db:migrate": "npm run migrate:dev -w @stride/database",
+    "db:studio": "npm run studio -w @stride/database",
+    "db:seed": "npm run seed -w @stride/database",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0"
+  }
+}

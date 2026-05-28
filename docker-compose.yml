@@ -1,0 +1,49 @@
+# Local development infrastructure for StrideMarket.
+# Run: docker compose up -d
+# Docs: docs/02-getting-started.md
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: stride-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: stride
+      POSTGRES_PASSWORD: stride_dev
+      POSTGRES_DB: stride_market
+    ports:
+      - "5432:5432"
+    volumes:
+      - stride_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stride -d stride_market"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: stride-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - stride_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  # Mailpit catches outbound email in dev (no real SMTP needed)
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: stride-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+volumes:
+  stride_pg_data:
+  stride_redis_data:

@@ -1,0 +1,87 @@
+What was created
+Monorepo layout
+Path	Purpose
+apps/web
+Next.js 15 + MUI + Apollo + tRPC client
+apps/api
+Express + GraphQL + tRPC + iron-session + auth/uploads
+apps/worker
+Job poller (email, AI moderation, embeddings, trending)
+packages/database
+Prisma schema + migrations
+packages/shared
+Zod schemas, constants, RBAC helpers
+docs/
+12 tutorial guides (start at docs/00-overview.md)
+Niche
+Running gear only — shoes, hydration, wearables, apparel, accessories (OLX / Mercado Livre style UX).
+
+Implemented learning features
+Auth: register, login, logout, verify email, forgot/reset password, bcrypt, rate limits
+RBAC: USER / SELLER / ADMIN (admin only via seed — no public signup)
+Listings: CRUD service, search/filters, featured/trending, view counts
+AI: listing assistant, NL search, chat, moderation + embeddings (worker)
+Workers: email outbox (Mailpit), background jobs table
+Frontend: homepage, search, listing detail, categories, auth, sell, favorites, admin scaffold
+Documentation (main deliverable)
+Follow this order:
+
+docs/00-overview.md — concept & diagrams
+docs/01-architecture.md — services & patterns
+docs/02-getting-started.md — local setup
+docs/11-learning-roadmap.md — step-by-step AI + full-stack path (20 steps)
+Topic guides: auth (03), database (04), APIs (05), AI (06), workers (07), frontend (08), uploads (09), admin (10).
+
+Quick start
+cp .env.example .env
+# Set SESSION_SECRET (32+ chars): openssl rand -base64 32
+npm install
+docker compose up -d
+npm run db:generate
+npm run db:migrate
+npm run db:seed
+# Three terminals:
+npm run dev:api
+npm run dev:worker
+npm run dev:web
+URL	Service
+http://localhost:3000
+Web
+http://localhost:4000/graphql
+GraphQL
+http://localhost:8025
+Mailpit (dev email)
+Seed accounts: admin@stridemarket.local, seller@stridemarket.local, buyer@stridemarket.local — password Password123!
+
+Optional: set OPENAI_API_KEY for real AI (otherwise mocks still run).
+
+AI flow (how to learn it)
+Documented in docs/06-ai-features.md:
+
+Feature	Sync (API)	Async (worker)
+Listing assistant
+tRPC ai.assistListing
+—
+NL search
+GPT keyword parse → SQL
+Embeddings on listings
+Moderation
+enqueue on create
+OpenAI Moderation API
+Chat
+tRPC ai.chat
+—
+Seller insights
+roadmap
+trending recalc job
+Suggested next steps (capstone exercises)
+The codebase is a foundation — docs list exercises such as:
+
+pgvector semantic search
+Admin approve/reject UI
+sharp + S3 image pipeline
+Next.js middleware for /admin
+BullMQ instead of DB polling
+If db:migrate fails with P1010, port 5432 may be used by another Postgres — stop it or change the port in docker-compose.yml and DATABASE_URL (noted in docs/02-getting-started.md).
+
+I can go deeper on any layer next — for example wiring admin moderation UI, semantic search with pgvector, or the seller analytics dashboard.

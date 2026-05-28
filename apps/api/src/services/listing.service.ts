@@ -1,0 +1,157 @@
+import { prisma, ListingStatus, ModerationDecision } from "@stride/database";
+import {
+  createListingSchema,
+  searchListingsSchema,
+  type CreateListingInput,
+} from "@stride/shared";
+import { AppError } from "../middleware/error-handler.js";
+import { enqueueJob } from "./queue.service.js";
+import { JOB_QUEUES } from "@stride/shared";
+
+function slugify(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 80);
+}
+
+export const listingService = {
+  async search(raw: unknown) {
+    const input = searchListingsSchema.parse(raw);
+    const where: Record<string, unknown> = {
+      status: ListingStatus.ACTIVE,
+      moderation: ModerationDecision.APPROVED,
+    };
+
+    if (input.categorySlug) {
+      where.category = { slug: input.categorySlug };
+    }
+    if (input.city) where.city = { equals: input.city, mode: "insensitive" };
+    if (input.state) where.state = { equals: input.state, mode: "insensitive" };
+    if (input.condition) where.condition = input.condition;
+    if (input.minPriceCents || input.maxPriceCents) {
+      where.priceCents = {
+        ...(input.minPriceCents ? { gte: input.minPriceCents } : {}),
+        ...(input.maxPriceCents ? { lte: input.maxPriceCents } : {}),
+      };
+    }
+    if (input.q) {
+      where.OR = [
+        { title: { contains: input.q, mode: "insensitive" } },
+        { description: { contains: input.q, mode: "insensitive" } },
+        { tags: { has: input.q.toLowerCase() } },
+      ];
+    }
+
+    const orderBy =
+      input.sort === "price_asc"
+        ? { priceCents: "asc" as const }
+        : input.sort === "price_desc"
+          ? { priceCents: "desc" as const }
+          : input.sort === "trending"
+            ? { trendingScore: "desc" as const }
+            : { publishedAt: "desc" as const };
+
+    const skip = (input.page - 1) * input.limit;
+
+    const [items, total] = await Promise.all([
+      prisma.listing.findMany({
+        where,
+        orderBy,
+        skip,
+        take: input.limit,
+        include: {
+          images: { orderBy: { sortOrder: "asc" }, take: 1 },
+          category: true,
+          seller: { select: { id: true, name: true, avatarUrl: true } },
+        },
+      }),
+      prisma.listing.count({ where }),
+    ]);
+
+    return { items, total, page: input.page, limit: input.limit };
+  },
+
+  async getBySlug(slug: string) {
+    const listing = await prisma.listing.findUnique({
+      where: { slug },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        category: true,
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            avatarUrl: true,
+            sellerProfile: true,
+          },
+        },
+      },
+    });
+
+    if (!listing) {
+      throw new AppError(404, "Listing not found", "NOT_FOUND");
+    }
+
+    await prisma.listing.update({
+      where: { id: listing.id },
+      data: { viewCount: { increment: 1 } },
+    });
+
+    return listing;
+  },
+
+  async create(sellerId: string, raw: CreateListingInput) {
+    const data = createListingSchema.parse(raw);
+    let slug = slugify(data.title);
+    const exists = await prisma.listing.findUnique({ where: { slug } });
+    if (exists) slug = `${slug}-${Date.now()}`;
+
+    const listing = await prisma.listing.create({
+      data: {
+        ...data,
+        slug,
+        sellerId,
+        status: ListingStatus.PENDING_REVIEW,
+        moderation: ModerationDecision.PENDING,
+      },
+    });
+
+    await enqueueJob(JOB_QUEUES.AI_MODERATION, { listingId: listing.id });
+    await enqueueJob(JOB_QUEUES.AI_EMBEDDING, { listingId: listing.id });
+
+    return listing;
+  },
+
+  async getFeatured(limit = 8) {
+    return prisma.listing.findMany({
+      where: {
+        featured: true,
+        status: ListingStatus.ACTIVE,
+        moderation: ModerationDecision.APPROVED,
+      },
+      take: limit,
+      orderBy: { trendingScore: "desc" },
+      include: {
+        images: { orderBy: { sortOrder: "asc" }, take: 1 },
+        category: true,
+      },
+    });
+  },
+
+  async getTrending(limit = 12) {
+    return prisma.listing.findMany({
+      where: {
+        status: ListingStatus.ACTIVE,
+        moderation: ModerationDecision.APPROVED,
+      },
+      take: limit,
+      orderBy: { trendingScore: "desc" },
+      include: {
+        images: { orderBy: { sortOrder: "asc" }, take: 1 },
+        category: true,
+      },
+    });
+  },
+};
