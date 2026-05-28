@@ -36,11 +36,22 @@ stateDiagram-v2
   ACTIVE --> SOLD: Seller marks sold
 ```
 
-Admin UI (`apps/web/src/app/admin/page.tsx`) is a scaffold — implement:
+Admin UI routes:
 
-- Listing queue filtered by `moderation: PENDING | FLAGGED`
-- Approve → `status: ACTIVE`, `publishedAt: now`, email seller
-- Reject → `status: REJECTED`, `moderationNote`, email seller
+- `/admin` — overview counts and recent listings
+- `/admin/listings` — moderation queue and all listings
+- `/admin/users` — users, seller/admin promotion, suspension/reactivation
+- `/admin/banners` — homepage banner creation, sort order, active toggle
+- `/admin/reports` — report inbox with resolve/reopen
+- `/admin/jobs` — background job monitor
+
+The UI uses admin-only tRPC procedures from `apps/api/src/trpc/router.ts`.
+Implementation details live in `apps/api/src/services/admin.service.ts`.
+
+Moderation actions:
+
+- Approve → `status: ACTIVE`, `moderation: APPROVED`, `publishedAt: now`, moderation log, email seller
+- Reject → `status: REJECTED`, `moderation: REJECTED`, `moderationNote`, moderation log, email seller
 
 ## Promoting users
 

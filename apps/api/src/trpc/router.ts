@@ -7,6 +7,8 @@ import {
 import { router, publicProcedure, protectedProcedure, roleProcedure } from "./trpc.js";
 import { listingService } from "../services/listing.service.js";
 import { aiService } from "../services/ai.service.js";
+import { adminService } from "../services/admin.service.js";
+import { UserRole, UserStatus } from "@stride/database";
 
 /**
  * tRPC — end-to-end type safety between API and Next.js client.
@@ -103,6 +105,94 @@ export const appRouter = router({
         });
         return { favorited: true };
       }),
+  }),
+
+  admin: router({
+    dashboard: roleProcedure("ADMIN").query(() => adminService.dashboard()),
+
+    moderationQueue: roleProcedure("ADMIN").query(() =>
+      adminService.moderationQueue()
+    ),
+
+    listings: roleProcedure("ADMIN").query(() => adminService.listings()),
+
+    approveListing: roleProcedure("ADMIN")
+      .input(z.object({ listingId: z.string().cuid() }))
+      .mutation(({ ctx, input }) =>
+        adminService.approveListing(ctx.session.userId, input.listingId)
+      ),
+
+    rejectListing: roleProcedure("ADMIN")
+      .input(
+        z.object({
+          listingId: z.string().cuid(),
+          note: z.string().min(3).max(1000),
+        })
+      )
+      .mutation(({ ctx, input }) =>
+        adminService.rejectListing(ctx.session.userId, input.listingId, input.note)
+      ),
+
+    setListingFeatured: roleProcedure("ADMIN")
+      .input(z.object({ listingId: z.string().cuid(), featured: z.boolean() }))
+      .mutation(({ input }) =>
+        adminService.setListingFeatured(input.listingId, input.featured)
+      ),
+
+    users: roleProcedure("ADMIN").query(() => adminService.users()),
+
+    promoteUser: roleProcedure("ADMIN")
+      .input(
+        z.object({
+          userId: z.string().cuid(),
+          role: z.enum([UserRole.SELLER, UserRole.ADMIN]),
+        })
+      )
+      .mutation(({ input }) => adminService.promoteUser(input.userId, input.role)),
+
+    setUserStatus: roleProcedure("ADMIN")
+      .input(z.object({ userId: z.string().cuid(), status: z.nativeEnum(UserStatus) }))
+      .mutation(({ input }) => adminService.setUserStatus(input.userId, input.status)),
+
+    banners: roleProcedure("ADMIN").query(() => adminService.banners()),
+
+    createBanner: roleProcedure("ADMIN")
+      .input(
+        z.object({
+          title: z.string().min(3).max(120),
+          subtitle: z.string().max(240).optional(),
+          imageUrl: z.string().min(1),
+          linkUrl: z.string().max(240).optional(),
+          sortOrder: z.number().int().default(0),
+          active: z.boolean().default(true),
+        })
+      )
+      .mutation(({ input }) => adminService.createBanner(input)),
+
+    updateBanner: roleProcedure("ADMIN")
+      .input(
+        z.object({
+          id: z.string().cuid(),
+          title: z.string().min(3).max(120).optional(),
+          subtitle: z.string().max(240).nullable().optional(),
+          imageUrl: z.string().min(1).optional(),
+          linkUrl: z.string().max(240).nullable().optional(),
+          sortOrder: z.number().int().optional(),
+          active: z.boolean().optional(),
+        })
+      )
+      .mutation(({ input }) => {
+        const { id, ...data } = input;
+        return adminService.updateBanner(id, data);
+      }),
+
+    reports: roleProcedure("ADMIN").query(() => adminService.reports()),
+
+    resolveReport: roleProcedure("ADMIN")
+      .input(z.object({ id: z.string().cuid(), resolved: z.boolean() }))
+      .mutation(({ input }) => adminService.resolveReport(input.id, input.resolved)),
+
+    jobs: roleProcedure("ADMIN").query(() => adminService.jobs()),
   }),
 });
 
