@@ -37,7 +37,7 @@ export default function LoginPage() {
     });
     if (!res.ok) {
       const body = (await res.json()) as { error?: string };
-      setError(body.error ?? "Login failed");
+      setError(body.error ?? "Não foi possível entrar.");
       return;
     }
     router.push("/");
@@ -48,7 +48,7 @@ export default function LoginPage() {
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Paper sx={{ p: 4 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom>
-          Sign in
+          Entrar
         </Typography>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -66,7 +66,7 @@ export default function LoginPage() {
           />
           <TextField
             fullWidth
-            label="Password"
+            label="Senha"
             type="password"
             margin="normal"
             {...register("password")}
@@ -81,14 +81,14 @@ export default function LoginPage() {
             sx={{ mt: 2 }}
             disabled={isSubmitting}
           >
-            Sign in
+            Entrar
           </Button>
         </Box>
         <Typography variant="body2" sx={{ mt: 2 }}>
-          <Link href="/forgot-password">Forgot password?</Link>
+          <Link href="/forgot-password">Esqueceu a senha?</Link>
         </Typography>
         <Typography variant="body2" sx={{ mt: 1 }}>
-          No account? <Link href="/register">Register</Link>
+          Ainda não tem conta? <Link href="/register">Criar conta</Link>
         </Typography>
       </Paper>
     </Container>

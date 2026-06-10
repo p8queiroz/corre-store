@@ -2,7 +2,7 @@
 // StrideMarket — Prisma schema
 // =============================================================================
 // Educational marketplace data model for a single niche: running gear.
-// See docs/04-database.md for entity relationships and design decisions.
+// See docs/PROJECT.md, "Database" for entity relationships and design decisions.
 
 generator client {
   provider = "prisma-client-js"

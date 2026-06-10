@@ -17,8 +17,10 @@ import {
 } from "@mui/material";
 import { registerSchema, type RegisterInput } from "@stride/shared";
 import { useState } from "react";
+import type { z } from "zod";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+type RegisterFormInput = z.input<typeof registerSchema>;
 
 export default function RegisterPage() {
   const params = useSearchParams();
@@ -30,7 +32,7 @@ export default function RegisterPage() {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
-  } = useForm<RegisterInput>({
+  } = useForm<RegisterFormInput, unknown, RegisterInput>({
     resolver: zodResolver(registerSchema),
     defaultValues: { asSeller },
   });
@@ -44,24 +46,24 @@ export default function RegisterPage() {
     });
     if (!res.ok) {
       const body = (await res.json()) as { error?: string };
-      setError(body.error ?? "Registration failed");
+      setError(body.error ?? "Não foi possível criar a conta.");
       return;
     }
-    setMessage("Check your email to verify your account.");
+    setMessage("Confira seu email para verificar a conta.");
   }
 
   return (
     <Container maxWidth="sm" sx={{ py: 8 }}>
       <Paper sx={{ p: 4 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom>
-          Create account
+          Criar conta
         </Typography>
         {message && <Alert severity="success" sx={{ mb: 2 }}>{message}</Alert>}
         {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
         <Box component="form" onSubmit={handleSubmit(onSubmit)} noValidate>
           <TextField
             fullWidth
-            label="Name"
+            label="Nome"
             margin="normal"
             {...register("name")}
             error={!!errors.name}
@@ -77,7 +79,7 @@ export default function RegisterPage() {
           />
           <TextField
             fullWidth
-            label="Password"
+            label="Senha"
             type="password"
             margin="normal"
             {...register("password")}
@@ -86,7 +88,7 @@ export default function RegisterPage() {
           />
           <FormControlLabel
             control={<Checkbox {...register("asSeller")} defaultChecked={asSeller} />}
-            label="Register as seller"
+            label="Criar conta de vendedor"
           />
           <Button
             type="submit"
@@ -96,11 +98,11 @@ export default function RegisterPage() {
             sx={{ mt: 2 }}
             disabled={isSubmitting}
           >
-            Register
+            Criar conta
           </Button>
         </Box>
         <Typography variant="body2" sx={{ mt: 2 }}>
-          Already have an account? <Link href="/login">Sign in</Link>
+          Já tem uma conta? <Link href="/login">Entrar</Link>
         </Typography>
       </Paper>
     </Container>

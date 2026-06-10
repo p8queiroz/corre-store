@@ -6,7 +6,7 @@ import { env } from "../config/env.js";
 /**
  * iron-session encrypts session data in an HTTP-only cookie.
  * Unlike raw JWT in localStorage, this reduces XSS token theft risk.
- * See docs/03-authentication.md
+ * See docs/PROJECT.md, "Authentication"
  */
 export const sessionOptions = {
   password: env.SESSION_SECRET,

@@ -12,14 +12,48 @@ import { getApolloClient } from "@/lib/apollo-server";
 import { HOMEPAGE_QUERY } from "@/graphql/queries";
 import { AiSearchHero } from "@/components/home/AiSearchHero";
 
+type Category = { id: string; slug: string; name: string };
+type ListingSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  priceCents: number;
+  city: string;
+  state: string;
+  images?: Array<{ thumbnailUrl?: string | null; url?: string | null }>;
+  category?: { name?: string | null };
+};
+
+const heroTitle =
+  "Venda o que você não usa mais e reinvista no próximo passo";
+const heroSubtitle =
+  "Transforme itens parados em novas possibilidades, com anúncios simples e vendedores reais.";
+
+const legacyHeroTitles = new Set(["Gear up for your next marathon"]);
+const legacyHeroSubtitles = new Set(["Trusted running gear from verified sellers"]);
+
+const categoryLabels: Record<string, string> = {
+  "running-shoes": "Calçados",
+  hydration: "Hidratação",
+  wearables: "Eletrônicos vestíveis",
+  apparel: "Vestuário",
+  accessories: "Acessórios",
+};
+
 export default async function HomePage() {
   const client = getApolloClient();
   const { data } = await client.query({ query: HOMEPAGE_QUERY });
 
   const banner = data?.homepageBanners?.[0];
-  const featured = data?.featuredListings ?? [];
-  const trending = data?.trendingListings ?? [];
-  const categories = data?.categories ?? [];
+  const featured = (data?.featuredListings ?? []) as ListingSummary[];
+  const trending = (data?.trendingListings ?? []) as ListingSummary[];
+  const categories = (data?.categories ?? []) as Category[];
+  const displayHeroTitle =
+    banner?.title && !legacyHeroTitles.has(banner.title) ? banner.title : heroTitle;
+  const displayHeroSubtitle =
+    banner?.subtitle && !legacyHeroSubtitles.has(banner.subtitle)
+      ? banner.subtitle
+      : heroSubtitle;
 
   return (
     <>
@@ -34,14 +68,13 @@ export default async function HomePage() {
           <Grid container spacing={4} alignItems="center">
             <Grid size={{ xs: 12, md: 7 }}>
               <Typography variant="overline" sx={{ opacity: 0.9 }}>
-                Running gear only — trusted marketplace
+                Marketplace para dar uma nova rodada aos produtos
               </Typography>
               <Typography variant="h2" component="h1" sx={{ mt: 1, mb: 2 }}>
-                {banner?.title ?? "Gear up for your next marathon"}
+                {displayHeroTitle}
               </Typography>
               <Typography variant="h6" sx={{ opacity: 0.9, mb: 3, fontWeight: 400 }}>
-                {banner?.subtitle ??
-                  "Buy and sell shoes, hydration, wearables, and race-day essentials."}
+                {displayHeroSubtitle}
               </Typography>
               <Stack direction="row" spacing={2}>
                 <Button
@@ -51,7 +84,7 @@ export default async function HomePage() {
                   color="secondary"
                   size="large"
                 >
-                  Browse listings
+                  Ver anúncios
                 </Button>
                 <Button
                   component={Link}
@@ -60,7 +93,7 @@ export default async function HomePage() {
                   size="large"
                   sx={{ color: "white", borderColor: "rgba(255,255,255,0.5)" }}
                 >
-                  Start selling
+                  Começar a vender
                 </Button>
               </Stack>
             </Grid>
@@ -73,7 +106,7 @@ export default async function HomePage() {
 
       <Container maxWidth="lg" sx={{ py: 6 }}>
         <Typography variant="h5" fontWeight={700} gutterBottom>
-          Shop by category
+          Comprar por categoria
         </Typography>
         <Stack direction="row" flexWrap="wrap" gap={1} sx={{ mb: 6 }}>
           {categories.map((cat) => (
@@ -83,13 +116,13 @@ export default async function HomePage() {
               href={`/category/${cat.slug}`}
               variant="outlined"
             >
-              {cat.name}
+              {categoryLabels[cat.slug] ?? cat.name}
             </Button>
           ))}
         </Stack>
 
         <Typography variant="h5" fontWeight={700} gutterBottom>
-          Featured
+          Em destaque
         </Typography>
         <Grid container spacing={2} sx={{ mb: 6 }}>
           {featured.map((listing) => (
@@ -100,15 +133,15 @@ export default async function HomePage() {
                 priceCents={listing.priceCents}
                 city={listing.city}
                 state={listing.state}
-                imageUrl={listing.images?.[0]?.thumbnailUrl ?? listing.images?.[0]?.url}
-                categoryName={listing.category?.name}
+                imageUrl={listing.images?.[0]?.thumbnailUrl ?? listing.images?.[0]?.url ?? undefined}
+                categoryName={listing.category?.name ?? undefined}
               />
             </Grid>
           ))}
         </Grid>
 
         <Typography variant="h5" fontWeight={700} gutterBottom>
-          Trending now
+          Em alta agora
         </Typography>
         <Grid container spacing={2}>
           {trending.map((listing) => (
@@ -119,7 +152,7 @@ export default async function HomePage() {
                 priceCents={listing.priceCents}
                 city={listing.city}
                 state={listing.state}
-                imageUrl={listing.images?.[0]?.thumbnailUrl ?? listing.images?.[0]?.url}
+                imageUrl={listing.images?.[0]?.thumbnailUrl ?? listing.images?.[0]?.url ?? undefined}
               />
             </Grid>
           ))}

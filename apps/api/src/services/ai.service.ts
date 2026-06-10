@@ -7,7 +7,7 @@ import { listingService } from "./listing.service.js";
 
 /**
  * AI service — synchronous helpers + async heavy work via worker.
- * See docs/06-ai-features.md for the full pipeline explanation.
+ * See docs/PROJECT.md, "AI Features" for the full pipeline explanation.
  */
 const openai = process.env.OPENAI_API_KEY
   ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
@@ -32,7 +32,7 @@ export const aiService = {
         {
           role: "system",
           content:
-            "You are a marketplace listing assistant for running gear. Return JSON with title, description, tags array.",
+            "You are a marketplace listing assistant for ReRun, where people sell unused items and reinvest the value in what comes next. Return JSON with title, description, tags array.",
         },
         {
           role: "user",
@@ -66,7 +66,7 @@ export const aiService = {
         {
           role: "system",
           content:
-            "Extract search keywords from the user query for a running gear marketplace. Return JSON: { keywords: string[], categoryHint?: string }",
+            "Extract search keywords from the user query for the ReRun second-run marketplace. Return JSON: { keywords: string[], categoryHint?: string }",
         },
         { role: "user", content: input.query },
       ],
@@ -117,7 +117,7 @@ export const aiService = {
           {
             role: "system",
             content:
-              "You are StrideMarket assistant for a running gear niche marketplace. Be concise. Suggest categories and search phrases.",
+              "You are the ReRun assistant for a marketplace where people sell unused items and reinvest the value in what comes next. Be concise. Suggest categories and search phrases.",
           },
           { role: "user", content: input.message },
         ],

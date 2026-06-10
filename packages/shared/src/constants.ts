@@ -1,6 +1,6 @@
 /** Platform niche — single category focus for learning clarity */
-export const PLATFORM_NAME = "StrideMarket";
-export const PLATFORM_TAGLINE = "Running gear marketplace for athletes";
+export const PLATFORM_NAME = "ReRun";
+export const PLATFORM_TAGLINE = "Second-run marketplace for reinvesting in what comes next";
 export const NICHE = "running-gear" as const;
 
 export const JOB_QUEUES = {

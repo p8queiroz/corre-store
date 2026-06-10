@@ -6,6 +6,17 @@ import { Container, Grid, Typography, Box, Chip } from "@mui/material";
 import { SEARCH_LISTINGS_QUERY } from "@/graphql/queries";
 import { ListingCard } from "@/components/listings/ListingCard";
 
+type ListingSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  priceCents: number;
+  city: string;
+  state: string;
+  images?: Array<{ thumbnailUrl?: string | null; url?: string | null }>;
+  category?: { name?: string | null };
+};
+
 export default function SearchPage() {
   const params = useSearchParams();
   const q = params.get("q") ?? undefined;
@@ -16,19 +27,21 @@ export default function SearchPage() {
     variables: { q, categorySlug, page: 1, limit: 24 },
   });
 
-  const results = data?.searchListings;
+  const results = data?.searchListings as
+    | { total: number; items: ListingSummary[] }
+    | undefined;
 
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" fontWeight={800} gutterBottom>
-        Search results
+        Resultados da busca
       </Typography>
       {ai && (
-        <Chip label="AI-enhanced results" color="secondary" sx={{ mb: 2 }} />
+        <Chip label="Resultados com apoio de IA" color="secondary" sx={{ mb: 2 }} />
       )}
-      {loading && <Typography>Loading…</Typography>}
+      {loading && <Typography>Carregando...</Typography>}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-        {results?.total ?? 0} listings found
+        {results?.total ?? 0} anúncios encontrados
       </Typography>
       <Grid container spacing={2}>
         {results?.items?.map((listing) => (
@@ -39,8 +52,8 @@ export default function SearchPage() {
               priceCents={listing.priceCents}
               city={listing.city}
               state={listing.state}
-              imageUrl={listing.images?.[0]?.thumbnailUrl ?? listing.images?.[0]?.url}
-              categoryName={listing.category?.name}
+              imageUrl={listing.images?.[0]?.thumbnailUrl ?? listing.images?.[0]?.url ?? undefined}
+              categoryName={listing.category?.name ?? undefined}
             />
           </Grid>
         ))}
@@ -48,7 +61,7 @@ export default function SearchPage() {
       {!loading && results?.items?.length === 0 && (
         <Box sx={{ py: 8, textAlign: "center" }}>
           <Typography color="text.secondary">
-            No listings yet. Start the API and run db:seed.
+            Nenhum anúncio encontrado.
           </Typography>
         </Box>
       )}

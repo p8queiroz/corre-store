@@ -1,24 +1,12 @@
-# StrideMarket — AI Learning Marketplace
+# ReRun — AI Learning Marketplace
 
-An **educational full-stack monorepo** that teaches modern marketplace architecture through a single-niche classified platform (**running gear**). Inspired by OLX, Facebook Marketplace, and Mercado Livre UX patterns.
+An **educational full-stack monorepo** that teaches modern marketplace architecture through a focused classified platform for giving unused products a second run. Inspired by OLX, Facebook Marketplace, and Mercado Livre UX patterns.
 
 > **Primary goal:** learn scalable architecture, auth/RBAC, AI integrations, workers, and media pipelines — with **documentation-first** explanations at every layer.
 
-## What you will learn
+## Documentation
 
-| Topic | Where |
-|-------|--------|
-| Monorepo & service boundaries | [docs/01-architecture.md](./docs/01-architecture.md) |
-| Local dev & Docker | [docs/02-getting-started.md](./docs/02-getting-started.md) |
-| Auth, sessions, RBAC | [docs/03-authentication.md](./docs/03-authentication.md) |
-| Prisma data model | [docs/04-database.md](./docs/04-database.md) |
-| GraphQL + tRPC APIs | [docs/05-graphql-and-trpc.md](./docs/05-graphql-and-trpc.md) |
-| AI features (listing assist, search, moderation, chat) | [docs/06-ai-features.md](./docs/06-ai-features.md) |
-| Background workers & email | [docs/07-workers.md](./docs/07-workers.md) |
-| Next.js + MUI frontend | [docs/08-frontend.md](./docs/08-frontend.md) |
-| Media uploads | [docs/09-media-uploads.md](./docs/09-media-uploads.md) |
-| Admin & RBAC | [docs/10-admin-and-rbac.md](./docs/10-admin-and-rbac.md) |
-| Learning roadmap (step-by-step) | [docs/11-learning-roadmap.md](./docs/11-learning-roadmap.md) |
+All project documentation now lives in one file: [docs/PROJECT.md](./docs/PROJECT.md).
 
 ## Repository structure
 
@@ -31,7 +19,7 @@ stride-market/
 ├── packages/
 │   ├── database/     # Prisma schema & client
 │   └── shared/       # Zod schemas, constants, shared types
-├── docs/             # Tutorial documentation (start here)
+├── docs/             # Single project guide
 ├── docker-compose.yml
 └── .env.example
 ```

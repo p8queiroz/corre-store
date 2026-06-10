@@ -1,0 +1,210 @@
+StrideMarket context snapshot
+
+StrideMarket is an educational full-stack marketplace application for running gear. It is a single-niche classified marketplace inspired by OLX, Facebook Marketplace, and Mercado Livre patterns. The goal is to learn and demonstrate realistic marketplace architecture while keeping the product domain focused enough to understand quickly.
+
+The application lets people browse running gear, search listings, view listing details, register, log in, favorite listings, contact sellers, become sellers, create and manage listings, upload product images, use AI assistance for listing content, and route new or edited listings through AI and admin moderation before they become public. It also includes an admin area for moderation, users, homepage banners, reports, and background job monitoring.
+
+Repository structure
+
+This is an npm workspaces monorepo.
+
+apps/web is the frontend. It uses Next.js App Router, React, TypeScript, Material UI, Apollo Client, tRPC client, TanStack Query, React Hook Form, Zod, and MUI icons.
+
+apps/api is the backend API. It uses Node.js, TypeScript, Express, GraphQL through graphql-http, tRPC, Prisma, iron-session, bcryptjs, multer, helmet, cors, express-rate-limit, Zod, and the OpenAI SDK.
+
+apps/worker is the background worker. It uses Node.js, TypeScript, Express, Prisma, OpenAI SDK, nodemailer, and a database-backed polling loop.
+
+packages/database contains the Prisma schema, migrations, seed script, generated Prisma client exports, and database access layer.
+
+packages/shared contains shared constants, role helpers, session types, and Zod schemas used by both frontend and backend.
+
+docs contains longer learning documentation for architecture, setup, auth, database, GraphQL and tRPC, AI, workers, frontend, media uploads, admin/RBAC, and roadmap.
+
+Main technologies
+
+Frontend: Next.js 15, React 19, TypeScript, Material UI 7, Emotion, Apollo Client, Apollo Next.js integration, tRPC React client, TanStack React Query, React Hook Form, Zod, MUI icons, Next.js App Router.
+
+Backend: Node.js, Express 5, TypeScript, GraphQL, graphql-http, @graphql-tools/schema, tRPC 11, Prisma, PostgreSQL, iron-session, bcryptjs, multer, helmet, cors, express-rate-limit, Zod, OpenAI SDK.
+
+Worker and async processing: Node.js, TypeScript, Express health endpoint, Prisma, database-backed BackgroundJob polling, EmailOutbox polling, nodemailer, OpenAI moderation, OpenAI embeddings, image-processing job hook, trending-score recalculation.
+
+Data and infrastructure: PostgreSQL 16 through Docker Compose, Prisma ORM, local file uploads, Mailpit for dev email capture, Redis container included for future queue architecture, dotenv-based local environment loading.
+
+AI: OpenAI GPT-4o-mini for listing assistance, natural language search parsing, and marketplace assistant chat; OpenAI moderation endpoint for automated listing moderation; text-embedding-3-small for listing embeddings.
+
+Architecture overview
+
+The app is split into a web frontend, API backend, worker process, database package, and shared package.
+
+The web app renders the marketplace UI. Public feed and detail data is mostly loaded through GraphQL with Apollo Client. Authenticated workflows and admin actions use tRPC for end-to-end typed calls. Browser authentication state is checked through REST auth endpoints.
+
+The API app is an Express server. It exposes REST endpoints for authentication and uploads, GraphQL at /graphql for public marketplace reads, and tRPC at /trpc for typed app workflows. The API builds request context from the Prisma client and encrypted session cookie. Sensitive operations are protected by tRPC middleware that checks authentication and role.
+
+The worker app is a separate process with a health endpoint and polling loop. It reads pending jobs from the BackgroundJob table and pending email from EmailOutbox. The current implementation intentionally uses database-backed jobs for learning clarity. A production version could replace this with BullMQ and Redis while keeping similar service boundaries.
+
+The database package owns Prisma. API services, worker processors, and seed scripts all use the same Prisma schema and client exports.
+
+The shared package keeps validation and constants consistent across the system. It includes listing schemas, auth schemas, search schemas, session types, roles, platform constants, job queue names, and rate-limit constants.
+
+API surfaces
+
+REST is used for flows that map naturally to HTTP endpoints:
+
+/auth/register registers a user and queues verification and welcome email.
+/auth/login validates credentials and writes the encrypted session cookie.
+/auth/logout destroys the session.
+/auth/me returns the current session user.
+/auth/become-seller upgrades an authenticated user into a seller.
+/auth/verify-email verifies email tokens.
+/auth/forgot-password and /auth/reset-password implement password reset.
+/uploads/listing-images accepts authenticated multipart image uploads.
+
+GraphQL is used for public marketplace reads:
+
+health returns ok.
+categories returns marketplace categories.
+listing(slug) returns a listing detail.
+searchListings returns paginated active approved listings with filters.
+featuredListings returns active approved featured listings.
+trendingListings returns active approved listings ordered by trending score.
+homepageBanners returns active homepage banners.
+
+tRPC is used for authenticated and typed workflows:
+
+listings.search, listings.bySlug, listings.create, listings.listMine, listings.getMine, listings.updateMine.
+ai.assistListing, ai.naturalLanguageSearch, ai.chat.
+favorites.list and favorites.toggle.
+admin.dashboard, admin.moderationQueue, admin.listings, admin.approveListing, admin.rejectListing, admin.setListingFeatured, admin.users, admin.promoteUser, admin.setUserStatus, admin.banners, admin.createBanner, admin.updateBanner, admin.reports, admin.resolveReport, admin.jobs.
+
+Data model
+
+The Prisma schema uses PostgreSQL. Core models include User, RefreshToken, EmailToken, SellerProfile, Category, Listing, ListingImage, Favorite, Inquiry, Report, HomepageBanner, ModerationLog, ChatSession, ChatMessage, BackgroundJob, and EmailOutbox.
+
+Important enums include UserRole, UserStatus, ListingStatus, ListingCondition, ModerationDecision, InquiryStatus, JobStatus, and EmailType.
+
+Users can be USER, SELLER, or ADMIN. User statuses include ACTIVE, SUSPENDED, and PENDING_VERIFICATION. Listings can be DRAFT, PENDING_REVIEW, ACTIVE, PAUSED, SOLD, REJECTED, or REMOVED. Moderation can be PENDING, APPROVED, REJECTED, or FLAGGED.
+
+Listings store title, slug, description, price in cents, condition, city, state, tags, status, moderation state, moderation note, view count, favorite count, sold date, published date, featured flag, trending score, embedding vector, and AI summary. Listings are connected to seller, optional seller profile, category, images, favorites, inquiries, reports, and moderation logs.
+
+Auth and roles
+
+Authentication is email/password based. Passwords are hashed with bcrypt. Sessions are stored in encrypted HTTP-only cookies through iron-session. The session stores user id, email, and role.
+
+Public signup can create regular users or sellers. Admin users are not created through public signup. Admin accounts are seed-only or backend-controlled through admin promotion.
+
+Backend authorization is enforced server-side. Protected tRPC procedures require a session. Seller listing creation and seller listing management require SELLER role. Admin procedures require ADMIN role. The frontend also shows role-aware screens, but backend checks are the real security boundary.
+
+Seed data
+
+The seed script creates demo users:
+
+admin@stridemarket.local with password Password123!
+seller@stridemarket.local with password Password123!
+buyer@stridemarket.local with password Password123!
+
+The seed script also creates running gear categories, a sample approved Nike Pegasus listing, and a homepage banner.
+
+Current frontend routes and features
+
+The homepage at / shows a marketplace hero, AI search component, categories, featured listings, and trending listings.
+
+/search shows search results from GraphQL. It supports query and category parameters and displays listing cards.
+
+/category/[slug] shows category-specific listing browsing.
+
+/listings/[slug] shows listing detail with image, category, title, price, city, state, condition, tags, contact seller action, description, and seller name.
+
+/login and /register provide authentication screens.
+
+/favorites shows the authenticated user's favorite listings.
+
+/sell lets a user create a listing. If the visitor is not signed in, it asks them to sign in or register. If the signed-in user is only USER, it offers to enable seller tools. If the user is SELLER or ADMIN, it shows the listing creation form.
+
+/seller lists the seller's own listings with image, title, price, category, location, status, moderation state, and moderation note.
+
+/seller/listings/[id]/edit lets sellers edit their listing details and images. Saving an edit resets the listing to pending review and pending moderation.
+
+/admin and the admin subpages provide admin operations. Admin pages currently include overview, listings, users, banners, reports, and jobs.
+
+Public marketplace features
+
+Users can browse homepage content, categories, search results, featured listings, trending listings, and listing details. Search only returns listings that are ACTIVE and APPROVED. Listing detail views increment the listing view count.
+
+Listing cards display image, category, title, price, and location. The app uses placeholder public images for seed data and resolves /uploads media paths from the API origin.
+
+Favorites are implemented through tRPC. A signed-in user can list favorites and toggle favorite state for a listing. The backend keeps one favorite per user/listing pair and updates the listing favorite count.
+
+Seller features
+
+Sellers can create listings with title, description, price, condition, category id, city, state, tags, and up to eight images.
+
+Sellers can upload JPEG, PNG, or WebP images. The API validates file type and max file size, stores files locally, returns /uploads URLs, and enqueues image-processing jobs.
+
+Sellers can use AI listing assistant to improve title, description, and tags. If OPENAI_API_KEY is missing, the API returns mock placeholder AI assistance.
+
+Created listings are submitted as PENDING_REVIEW with PENDING moderation. Listing creation enqueues AI moderation and AI embedding jobs. AI does not automatically publish listings. Admin approval is still required.
+
+Sellers can view and edit their own listings. Server-side checks prevent non-admin users from managing listings they do not own.
+
+Admin features
+
+The admin overview shows counts for pending listings, flagged listings, active listings, open reports, users, sellers, failed jobs, and active banners. It also shows recent listings.
+
+The admin listings area shows moderation queues and listing tables. Admins can approve listings, reject listings with a note, and toggle featured status. Approval sets status to ACTIVE, moderation to APPROVED, clears moderation note, sets publishedAt, logs the admin decision, and queues an approval email. Rejection sets status to REJECTED, moderation to REJECTED, stores the note, logs the admin decision, and queues a rejection email.
+
+The admin users area lists users and seller profile data. Admins can promote users to SELLER or ADMIN and can suspend or reactivate users.
+
+The admin banners area manages homepage banners with title, subtitle, image URL, link URL, sort order, and active state. Public homepage queries only return active banners ordered by sort order.
+
+The admin reports area lists user-submitted reports with reporter and listing context. Admins can resolve or reopen reports.
+
+The admin jobs area lists recent background jobs with queue, status, attempts, and error information.
+
+AI features
+
+AI listing assistance is synchronous through the API. It uses GPT-4o-mini to return JSON with improved title, description, and tags.
+
+Natural language search accepts a user query. Without OpenAI it falls back to keyword search. With OpenAI it parses keywords and category hints, enqueues embedding work, and delegates final listing retrieval to the normal listing search path.
+
+AI chat creates or reuses a chat session and stores user and assistant messages. With OpenAI it uses GPT-4o-mini to answer as a concise StrideMarket assistant. Without OpenAI it returns a static helpful reply.
+
+AI moderation runs in the worker. It calls OpenAI moderation on listing title and description, writes a ModerationLog, and sets listing moderation to FLAGGED when flagged or leaves it PENDING with a note when it passes automated moderation. Admin review remains the final source of truth.
+
+AI embeddings run in the worker. It uses text-embedding-3-small over listing title, description, and tags, then stores the embedding and a short AI summary on the listing.
+
+Worker features
+
+The worker polls pending BackgroundJob rows. It processes queues named email, image-processing, ai-moderation, ai-embedding, and trending-recalc.
+
+Email delivery reads EmailOutbox records and sends through nodemailer. In local development Mailpit captures email.
+
+Image processing jobs are enqueued after upload. The current structure is ready for thumbnail generation and future storage integrations.
+
+Trending recalculation computes trendingScore from view count, favorite count, and recency for active approved listings.
+
+Media handling
+
+The API stores uploaded listing images on local disk at the configured storage path. It serves uploads from /uploads. The web frontend resolves upload URLs against NEXT_PUBLIC_API_URL or localhost:4000. Placeholder images remain in the Next.js public folder.
+
+Upload validation currently allows JPEG, PNG, and WebP, limits files to 5 MB each, and accepts up to 8 images per listing upload request.
+
+Local development
+
+The root package scripts include dev, dev:api, dev:web, dev:worker, build, db:generate, db:migrate, db:studio, db:seed, lint, and typecheck.
+
+Docker Compose provides PostgreSQL on port 5432, Redis on port 6379, and Mailpit on ports 1025 and 8025.
+
+Expected local URLs:
+
+Web: http://localhost:3000
+API: http://localhost:4000
+GraphQL: http://localhost:4000/graphql
+Mailpit: http://localhost:8025
+
+Current implementation notes
+
+This application currently favors educational clarity over production infrastructure. Background jobs are database-backed instead of a dedicated queue system. Uploaded media is local instead of S3/CDN. Embeddings are stored on the Listing model as a float array, with comments indicating pgvector as a production direction. Redis is present in Docker Compose but the current queue implementation is still database-backed.
+
+The architecture intentionally uses different API styles for different jobs. REST handles auth and uploads. GraphQL handles public marketplace reads. tRPC handles typed authenticated workflows, seller tools, AI actions, favorites, and admin operations.
+
+The current project is a working marketplace learning app with role-based auth, listing lifecycle, AI-assisted listing creation, AI and admin moderation, local media uploads, public discovery, seller management, admin operations, database-backed workers, and seed/demo data.

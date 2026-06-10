@@ -27,6 +27,14 @@ import type { z } from "zod";
 
 const apiUrl = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
+const conditionLabels: Record<string, string> = {
+  NEW: "Novo",
+  LIKE_NEW: "Como novo",
+  GOOD: "Bom",
+  FAIR: "Regular",
+  FOR_PARTS: "Para peças",
+};
+
 type CreateListingFormInput = z.input<typeof createListingSchema>;
 
 type SessionUser = {
@@ -98,13 +106,13 @@ export default function SellPage() {
       });
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? "Could not enable seller account");
+        throw new Error(body.error ?? "Não foi possível habilitar a conta de vendedor.");
       }
       const body = (await res.json()) as { user: SessionUser };
       setSessionUser(body.user);
-      setSuccessMessage("Seller tools enabled. You can add your first product now.");
+      setSuccessMessage("Ferramentas de vendedor habilitadas. Você já pode criar seu primeiro anúncio.");
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Could not enable seller account");
+      setUploadError(error instanceof Error ? error.message : "Não foi possível habilitar a conta de vendedor.");
     } finally {
       setIsBecomingSeller(false);
     }
@@ -125,7 +133,7 @@ export default function SellPage() {
       });
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? "Image upload failed");
+        throw new Error(body.error ?? "Falha ao enviar imagens.");
       }
       const body = (await res.json()) as { urls: string[] };
       return body.urls;
@@ -140,10 +148,10 @@ export default function SellPage() {
     try {
       const imageUrls = await uploadImages();
       await createListing.mutateAsync({ ...data, imageUrls });
-      setSuccessMessage("Listing submitted for review.");
+      setSuccessMessage("Anúncio enviado para revisão.");
       setSelectedFiles([]);
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Listing submission failed");
+      setUploadError(error instanceof Error ? error.message : "Não foi possível enviar o anúncio.");
     }
   }
 
@@ -151,7 +159,7 @@ export default function SellPage() {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Paper sx={{ p: 4 }}>
-          <Typography>Loading seller tools...</Typography>
+          <Typography>Carregando ferramentas de vendedor...</Typography>
         </Paper>
       </Container>
     );
@@ -162,17 +170,17 @@ export default function SellPage() {
       <Container maxWidth="sm" sx={{ py: 8 }}>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h4" fontWeight={800} gutterBottom>
-            Sign in to sell
+            Entre para vender
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Seller tools are available after you sign in or create a seller account.
+            As ferramentas de vendedor ficam disponíveis depois que você entra ou cria uma conta de vendedor.
           </Typography>
           <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
             <Button component={Link} href="/login" variant="contained">
-              Sign in
+              Entrar
             </Button>
             <Button component={Link} href="/register?asSeller=1" variant="outlined">
-              Create seller account
+              Criar conta de vendedor
             </Button>
           </Stack>
         </Paper>
@@ -185,10 +193,10 @@ export default function SellPage() {
       <Container maxWidth="sm" sx={{ py: 8 }}>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h4" fontWeight={800} gutterBottom>
-            Become a seller
+            Torne-se vendedor
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Enable seller tools on your current account to add products and submit listings for review.
+            Habilite as ferramentas de vendedor na sua conta atual para criar anúncios e enviá-los para revisão.
           </Typography>
           {uploadError && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -202,7 +210,7 @@ export default function SellPage() {
             onClick={() => void becomeSeller()}
             disabled={isBecomingSeller}
           >
-            Enable seller tools
+            Habilitar ferramentas
           </Button>
         </Paper>
       </Container>
@@ -213,10 +221,10 @@ export default function SellPage() {
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Paper sx={{ p: 4 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom>
-          Create listing
+          Criar anúncio
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
-          Seller dashboard — listings go to AI + admin moderation before going live.
+          Seus anúncios passam por IA e moderação antes de ficarem públicos.
         </Typography>
         {successMessage && (
           <Alert severity="success" sx={{ mb: 2 }}>
@@ -241,11 +249,11 @@ export default function SellPage() {
             disabled={aiAssist.isPending}
             sx={{ mb: 2 }}
           >
-            AI listing assistant
+            Assistente de anúncio com IA
           </Button>
           <TextField
             fullWidth
-            label="Title"
+            label="Título"
             margin="normal"
             {...register("title")}
             error={!!errors.title}
@@ -253,7 +261,7 @@ export default function SellPage() {
           />
           <TextField
             fullWidth
-            label="Description"
+            label="Descrição"
             multiline
             minRows={4}
             margin="normal"
@@ -267,7 +275,7 @@ export default function SellPage() {
             startIcon={<CloudUploadIcon />}
             sx={{ mt: 2 }}
           >
-            Add product images
+            Adicionar imagens do produto
             <input
               type="file"
               accept="image/jpeg,image/png,image/webp"
@@ -280,12 +288,12 @@ export default function SellPage() {
           </Button>
           {selectedFiles.length > 0 && (
             <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-              {selectedFiles.length} image{selectedFiles.length === 1 ? "" : "s"} selected
+              {selectedFiles.length} imagem{selectedFiles.length === 1 ? "" : "s"} selecionada{selectedFiles.length === 1 ? "" : "s"}
             </Typography>
           )}
           <TextField
             fullWidth
-            label="Price (cents)"
+            label="Preço (centavos)"
             type="number"
             margin="normal"
             {...register("priceCents", { valueAsNumber: true })}
@@ -295,26 +303,26 @@ export default function SellPage() {
           <TextField
             fullWidth
             select
-            label="Condition"
+            label="Condição"
             margin="normal"
             defaultValue="GOOD"
             {...register("condition")}
           >
             {listingConditionEnum.options.map((c) => (
               <MenuItem key={c} value={c}>
-                {c}
+                {conditionLabels[c] ?? c}
               </MenuItem>
             ))}
           </TextField>
           <TextField
             fullWidth
-            label="Category ID"
+            label="ID da categoria"
             margin="normal"
             {...register("categoryId")}
-            helperText="Use category id from seed / GraphQL categories query"
+            helperText="Use o ID de categoria gerado pelo seed ou pela consulta GraphQL de categorias"
           />
-          <TextField fullWidth label="City" margin="normal" {...register("city")} />
-          <TextField fullWidth label="State" margin="normal" {...register("state")} />
+          <TextField fullWidth label="Cidade" margin="normal" {...register("city")} />
+          <TextField fullWidth label="Estado" margin="normal" {...register("state")} />
           <Button
             type="submit"
             variant="contained"
@@ -322,7 +330,7 @@ export default function SellPage() {
             sx={{ mt: 3 }}
             disabled={createListing.isPending || isUploading}
           >
-            {isUploading ? "Uploading images..." : "Submit for review"}
+            {isUploading ? "Enviando imagens..." : "Enviar para revisão"}
           </Button>
         </Box>
       </Paper>

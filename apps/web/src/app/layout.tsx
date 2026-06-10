@@ -6,18 +6,18 @@ import { SiteFooter } from "@/components/layout/SiteFooter";
 
 export const metadata: Metadata = {
   title: {
-    default: "StrideMarket — Running Gear Marketplace",
-    template: "%s | StrideMarket",
+    default: "ReRun — Marketplace para reinvestir no próximo passo",
+    template: "%s | ReRun",
   },
   description:
-    "Buy and sell running shoes, hydration gear, wearables, and marathon essentials.",
+    "Venda o que você não usa mais e reinvista em novas possibilidades.",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en">
+    <html lang="pt-BR">
       <body>
         <AppRouterCacheProvider>
           <Providers>

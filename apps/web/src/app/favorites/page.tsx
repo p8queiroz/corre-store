@@ -12,16 +12,16 @@ export default function FavoritesPage() {
   return (
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Typography variant="h4" fontWeight={800} gutterBottom>
-        Saved listings
+        Favoritos
       </Typography>
-      {isLoading && <Typography>Loading…</Typography>}
+      {isLoading && <Typography>Carregando...</Typography>}
       {!isLoading && !data?.length && (
         <>
           <Typography color="text.secondary" sx={{ mb: 2 }}>
-            Sign in to save favorites.
+            Entre para salvar seus favoritos.
           </Typography>
           <Button component={Link} href="/login" variant="contained">
-            Sign in
+            Entrar
           </Button>
         </>
       )}

@@ -8,7 +8,7 @@ export function SiteFooter() {
     >
       <Container maxWidth="lg">
         <Typography variant="body2">
-          StrideMarket — Educational running gear marketplace (AI learning project)
+          ReRun — venda o que você não usa mais e reinvista no próximo passo.
         </Typography>
       </Container>
     </Box>

@@ -60,16 +60,16 @@ export const authService = {
 
     await enqueueEmail({
       to: user.email,
-      subject: "Verify your StrideMarket account",
+      subject: "Verify your ReRun account",
       type: "VERIFY_EMAIL",
       htmlBody: `<p>Welcome! Verify: <a href="${process.env.WEB_ORIGIN}/verify-email?token=${verifyToken}">Click here</a></p>`,
     });
 
     await enqueueEmail({
       to: user.email,
-      subject: "Welcome to StrideMarket",
+      subject: "Welcome to ReRun",
       type: "WELCOME",
-      htmlBody: `<p>Hi ${user.name}, welcome to the running gear marketplace.</p>`,
+      htmlBody: `<p>Hi ${user.name}, welcome to ReRun.</p>`,
     });
 
     return { userId: user.id, email: user.email };

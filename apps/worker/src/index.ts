@@ -7,7 +7,7 @@
  * - AI moderation & embeddings
  * - Trending score recalculation
  *
- * See docs/07-workers.md
+ * See docs/PROJECT.md, "Workers"
  */
 import express from "express";
 import { startJobPoller } from "./poller.js";

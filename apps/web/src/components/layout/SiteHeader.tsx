@@ -46,7 +46,7 @@ export function SiteHeader() {
               mr: 2,
             }}
           >
-            StrideMarket
+            ReRun
           </Typography>
 
           <Box
@@ -57,14 +57,14 @@ export function SiteHeader() {
             <TextField
               fullWidth
               size="small"
-              placeholder='Try "lightweight marathon shoes for beginners"'
+              placeholder='Busque por "mochila quase nova"'
               value={q}
               onChange={(e) => setQ(e.target.value)}
               slotProps={{
                 input: {
                   endAdornment: (
                     <InputAdornment position="end">
-                      <IconButton type="submit" edge="end" aria-label="Search">
+                      <IconButton type="submit" edge="end" aria-label="Buscar">
                         <SearchIcon />
                       </IconButton>
                     </InputAdornment>
@@ -75,16 +75,16 @@ export function SiteHeader() {
           </Box>
 
           <Button component={Link} href="/sell" variant="contained" color="secondary">
-            Sell
+            Vender
           </Button>
           <Button component={Link} href="/seller" variant="outlined">
-            My listings
+            Meus anúncios
           </Button>
-          <IconButton component={Link} href="/favorites" aria-label="Favorites">
+          <IconButton component={Link} href="/favorites" aria-label="Favoritos">
             <FavoriteBorderIcon />
           </IconButton>
           <Button component={Link} href="/login" variant="outlined">
-            Sign in
+            Entrar
           </Button>
         </Toolbar>
       </Container>

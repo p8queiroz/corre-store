@@ -3,7 +3,7 @@ import { registerApolloClient } from "@apollo/client-integration-nextjs";
 
 /**
  * Server Components fetch GraphQL without shipping client bundle.
- * See docs/08-frontend.md
+ * See docs/PROJECT.md, "Frontend"
  */
 export const { getClient: getApolloClient } = registerApolloClient(() => {
   return new ApolloClient({

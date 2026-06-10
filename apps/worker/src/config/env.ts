@@ -8,7 +8,7 @@ const envSchema = z.object({
   SMTP_PORT: z.coerce.number().default(1025),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
-  EMAIL_FROM: z.string().default("StrideMarket <noreply@stridemarket.local>"),
+  EMAIL_FROM: z.string().default("ReRun <noreply@stridemarket.local>"),
   POLL_INTERVAL_MS: z.coerce.number().default(3000),
 });
 

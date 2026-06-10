@@ -13,6 +13,28 @@ import { notFound } from "next/navigation";
 import { ContactSellerButton } from "@/components/listings/ContactSellerButton";
 import { resolveMediaUrl } from "@/lib/media";
 
+const conditionLabels: Record<string, string> = {
+  NEW: "Novo",
+  LIKE_NEW: "Como novo",
+  GOOD: "Bom",
+  FAIR: "Regular",
+  FOR_PARTS: "Para peças",
+};
+
+type ListingDetail = {
+  id: string;
+  title: string;
+  description: string;
+  priceCents: number;
+  condition: string;
+  city: string;
+  state: string;
+  tags: string[];
+  images?: Array<{ url?: string | null }>;
+  category: { name: string };
+  seller: { name: string };
+};
+
 function formatPrice(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -32,7 +54,7 @@ export default async function ListingDetailPage({
     variables: { slug },
   });
 
-  const listing = data?.listing;
+  const listing = data?.listing as ListingDetail | undefined;
   if (!listing) notFound();
   const heroImageUrl = resolveMediaUrl(listing.images?.[0]?.url);
 
@@ -59,7 +81,7 @@ export default async function ListingDetailPage({
             {formatPrice(listing.priceCents)}
           </Typography>
           <Typography variant="body2" color="text.secondary" sx={{ my: 2 }}>
-            {listing.city}, {listing.state} · {listing.condition.replace("_", " ")}
+            {listing.city}, {listing.state} · {conditionLabels[listing.condition] ?? listing.condition}
           </Typography>
           <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ mb: 3 }}>
             {listing.tags.map((tag) => (
@@ -68,13 +90,13 @@ export default async function ListingDetailPage({
           </Stack>
           <ContactSellerButton listingId={listing.id} />
           <Typography variant="h6" sx={{ mt: 4, mb: 1 }}>
-            Description
+            Descrição
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: "pre-wrap" }}>
             {listing.description}
           </Typography>
           <Typography variant="subtitle2" sx={{ mt: 4 }}>
-            Seller: {listing.seller.name}
+            Vendedor: {listing.seller.name}
           </Typography>
         </Grid>
       </Grid>

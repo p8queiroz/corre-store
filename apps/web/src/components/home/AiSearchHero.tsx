@@ -16,7 +16,7 @@ import { useRouter } from "next/navigation";
 
 /**
  * Natural language discovery — demonstrates AI product search flow.
- * See docs/06-ai-features.md § Product Discovery
+ * See docs/PROJECT.md, "AI Features" / Product Discovery
  */
 export function AiSearchHero() {
   const router = useRouter();
@@ -37,14 +37,14 @@ export function AiSearchHero() {
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
           <AutoAwesomeIcon />
           <Typography variant="subtitle1" fontWeight={700}>
-            AI discovery
+            Busca com IA
           </Typography>
         </Box>
         <TextField
           fullWidth
           multiline
           minRows={2}
-          placeholder="Show me lightweight running shoes for marathon beginners"
+          placeholder="Encontre itens em bom estado para começar algo novo"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           sx={{
@@ -62,7 +62,7 @@ export function AiSearchHero() {
           onClick={() => void handleAiSearch()}
           startIcon={search.isPending ? <CircularProgress size={18} /> : <AutoAwesomeIcon />}
         >
-          Search with AI
+          Buscar com IA
         </Button>
       </CardContent>
     </Card>

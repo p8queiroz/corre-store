@@ -58,6 +58,34 @@ type ListingRow = {
 };
 type CategoryOption = { id: string; slug: string; name: string };
 
+const conditionLabels: Record<string, string> = {
+  NEW: "Novo",
+  LIKE_NEW: "Como novo",
+  GOOD: "Bom",
+  FAIR: "Regular",
+  FOR_PARTS: "Para peças",
+};
+
+const statusLabels: Record<string, string> = {
+  ACTIVE: "Ativo",
+  APPROVED: "Aprovado",
+  COMPLETED: "Concluído",
+  DRAFT: "Rascunho",
+  FAILED: "Falhou",
+  FAIR: "Regular",
+  FLAGGED: "Sinalizado",
+  FOR_PARTS: "Para peças",
+  GOOD: "Bom",
+  LIKE_NEW: "Como novo",
+  NEW: "Novo",
+  PENDING: "Pendente",
+  PENDING_REVIEW: "Em revisão",
+  PAUSED: "Pausado",
+  REJECTED: "Rejeitado",
+  REMOVED: "Removido",
+  SOLD: "Vendido",
+};
+
 function money(cents: number) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -75,7 +103,7 @@ function statusColor(value: string) {
 function StatusChip({ value }: { value: string }) {
   return (
     <Chip
-      label={value.replace("_", " ")}
+      label={statusLabels[value] ?? value.replace("_", " ")}
       color={statusColor(value)}
       size="small"
       variant="outlined"
@@ -100,7 +128,7 @@ function SellerGate({ children }: { children: React.ReactNode }) {
           setUser(body.user);
         }
       } catch {
-        if (active) setError("Could not reach the API session endpoint.");
+        if (active) setError("Não foi possível acessar a sessão da API.");
       } finally {
         if (active) setChecked(true);
       }
@@ -121,12 +149,12 @@ function SellerGate({ children }: { children: React.ReactNode }) {
       });
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? "Could not enable seller tools");
+        throw new Error(body.error ?? "Não foi possível habilitar as ferramentas de vendedor.");
       }
       const body = (await res.json()) as { user: SessionUser };
       setUser(body.user);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Could not enable seller tools");
+      setError(err instanceof Error ? err.message : "Não foi possível habilitar as ferramentas de vendedor.");
     } finally {
       setIsBecomingSeller(false);
     }
@@ -136,7 +164,7 @@ function SellerGate({ children }: { children: React.ReactNode }) {
     return (
       <Container maxWidth="md" sx={{ py: 4 }}>
         <Paper sx={{ p: 4 }}>
-          <Typography>Loading seller tools...</Typography>
+          <Typography>Carregando ferramentas de vendedor...</Typography>
         </Paper>
       </Container>
     );
@@ -147,13 +175,13 @@ function SellerGate({ children }: { children: React.ReactNode }) {
       <Container maxWidth="sm" sx={{ py: 8 }}>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h4" fontWeight={800} gutterBottom>
-            Sign in to manage listings
+            Entre para gerenciar anúncios
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Seller listing management is available after you sign in.
+            O gerenciamento de anúncios fica disponível depois que você entra.
           </Typography>
           <Button component={Link} href="/login" variant="contained">
-            Sign in
+            Entrar
           </Button>
         </Paper>
       </Container>
@@ -165,10 +193,10 @@ function SellerGate({ children }: { children: React.ReactNode }) {
       <Container maxWidth="sm" sx={{ py: 8 }}>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h4" fontWeight={800} gutterBottom>
-            Enable seller tools
+            Habilitar ferramentas de vendedor
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Regular accounts need seller tools before they can manage products.
+            Contas comuns precisam habilitar as ferramentas de vendedor antes de gerenciar produtos.
           </Typography>
           {error && (
             <Alert severity="error" sx={{ mb: 2 }}>
@@ -182,7 +210,7 @@ function SellerGate({ children }: { children: React.ReactNode }) {
             onClick={() => void becomeSeller()}
             disabled={isBecomingSeller}
           >
-            Enable seller tools
+            Habilitar ferramentas
           </Button>
         </Paper>
       </Container>
@@ -207,23 +235,23 @@ export function SellerListingsPage() {
           >
             <Box>
               <Typography variant="h4" fontWeight={800} gutterBottom>
-                My listings
+                Meus anúncios
               </Typography>
               <Typography color="text.secondary">
-                Review listing status, update product details, and manage images.
+                Acompanhe o status, atualize detalhes do produto e gerencie imagens.
               </Typography>
             </Box>
             <Button component={Link} href="/sell" variant="contained">
-              Create listing
+              Criar anúncio
             </Button>
           </Stack>
 
           <Paper sx={{ p: 3 }}>
             <Stack spacing={2}>
-              {listings.isLoading && <Typography>Loading listings...</Typography>}
+              {listings.isLoading && <Typography>Carregando anúncios...</Typography>}
               {listings.error && <Alert severity="error">{listings.error.message}</Alert>}
               {!listings.isLoading && !listings.data?.length && (
-                <Typography color="text.secondary">No listings yet.</Typography>
+                <Typography color="text.secondary">Você ainda não tem anúncios.</Typography>
               )}
               {((listings.data ?? []) as ListingRow[]).map((listing) => (
                 <Stack
@@ -248,7 +276,7 @@ export function SellerListingsPage() {
                   <Box sx={{ flex: 1 }}>
                     <Typography fontWeight={800}>{listing.title}</Typography>
                     <Typography variant="body2" color="text.secondary">
-                      {listing.category?.name ?? "Uncategorized"} · {money(listing.priceCents)} ·{" "}
+                      {listing.category?.name ?? "Sem categoria"} · {money(listing.priceCents)} ·{" "}
                       {listing.city}, {listing.state}
                     </Typography>
                     <Stack direction="row" gap={0.75} flexWrap="wrap" sx={{ mt: 1 }}>
@@ -268,7 +296,7 @@ export function SellerListingsPage() {
                       size="small"
                       variant="outlined"
                     >
-                      View
+                      Ver
                     </Button>
                     <Button
                       component={Link}
@@ -277,7 +305,7 @@ export function SellerListingsPage() {
                       variant="contained"
                       startIcon={<EditIcon />}
                     >
-                      Edit
+                      Editar
                     </Button>
                   </Stack>
                 </Stack>
@@ -298,7 +326,7 @@ export function SellerListingEditPage() {
   const update = trpc.listings.updateMine.useMutation({
     onSuccess: async () => {
       await utils.listings.invalidate();
-      setSuccess("Listing saved and sent back to review.");
+      setSuccess("Anúncio salvo e enviado novamente para revisão.");
     },
   });
   const categories = useQuery<{ categories: CategoryOption[] }>(CATEGORIES_QUERY);
@@ -349,7 +377,7 @@ export function SellerListingEditPage() {
       });
       if (!res.ok) {
         const body = (await res.json()) as { error?: string };
-        throw new Error(body.error ?? "Image upload failed");
+        throw new Error(body.error ?? "Falha ao enviar imagens.");
       }
       const body = (await res.json()) as { urls: string[] };
       return body.urls;
@@ -381,7 +409,7 @@ export function SellerListingEditPage() {
       setImageUrls(nextImageUrls);
       setSelectedFiles([]);
     } catch (error) {
-      setUploadError(error instanceof Error ? error.message : "Listing update failed");
+      setUploadError(error instanceof Error ? error.message : "Não foi possível atualizar o anúncio.");
     }
   }
 
@@ -395,12 +423,12 @@ export function SellerListingEditPage() {
             onClick={() => router.push("/seller")}
             sx={{ alignSelf: "flex-start" }}
           >
-            My listings
+            Meus anúncios
           </Button>
 
           <Paper sx={{ p: 4 }}>
             <Typography variant="h4" fontWeight={800} gutterBottom>
-              Edit listing
+              Editar anúncio
             </Typography>
             {(listing.data as ListingRow | undefined) && (
               <Stack direction="row" gap={0.75} flexWrap="wrap" sx={{ mb: 2 }}>
@@ -408,7 +436,7 @@ export function SellerListingEditPage() {
                 <StatusChip value={(listing.data as ListingRow).moderation} />
               </Stack>
             )}
-            {listing.isLoading && <Typography>Loading listing...</Typography>}
+            {listing.isLoading && <Typography>Carregando anúncio...</Typography>}
             {listing.error && <Alert severity="error">{listing.error.message}</Alert>}
             {success && (
               <Alert severity="success" sx={{ mb: 2 }}>
@@ -430,7 +458,7 @@ export function SellerListingEditPage() {
               <Box component="form" onSubmit={handleSubmit(onSubmit)}>
                 <TextField
                   fullWidth
-                  label="Title"
+                  label="Título"
                   margin="normal"
                   {...register("title")}
                   error={!!errors.title}
@@ -438,7 +466,7 @@ export function SellerListingEditPage() {
                 />
                 <TextField
                   fullWidth
-                  label="Description"
+                  label="Descrição"
                   multiline
                   minRows={4}
                   margin="normal"
@@ -448,7 +476,7 @@ export function SellerListingEditPage() {
                 />
                 <TextField
                   fullWidth
-                  label="Price (cents)"
+                  label="Preço (centavos)"
                   type="number"
                   margin="normal"
                   {...register("priceCents", { valueAsNumber: true })}
@@ -458,7 +486,7 @@ export function SellerListingEditPage() {
                 <TextField
                   fullWidth
                   select
-                  label="Category"
+                  label="Categoria"
                   margin="normal"
                   defaultValue={(listing.data as ListingRow).categoryId}
                   {...register("categoryId")}
@@ -474,29 +502,29 @@ export function SellerListingEditPage() {
                 <TextField
                   fullWidth
                   select
-                  label="Condition"
+                  label="Condição"
                   margin="normal"
                   defaultValue={(listing.data as ListingRow).condition}
                   {...register("condition")}
                 >
                   {listingConditionEnum.options.map((condition) => (
                     <MenuItem key={condition} value={condition}>
-                      {condition.replace("_", " ")}
+                      {conditionLabels[condition] ?? condition.replace("_", " ")}
                     </MenuItem>
                   ))}
                 </TextField>
-                <TextField fullWidth label="City" margin="normal" {...register("city")} />
-                <TextField fullWidth label="State" margin="normal" {...register("state")} />
+                <TextField fullWidth label="Cidade" margin="normal" {...register("city")} />
+                <TextField fullWidth label="Estado" margin="normal" {...register("state")} />
                 <TextField
                   fullWidth
                   label="Tags"
                   margin="normal"
                   {...register("tags")}
-                  helperText="Comma-separated tags"
+                  helperText="Separe as tags por vírgula"
                 />
 
                 <Typography variant="h6" fontWeight={800} sx={{ mt: 3, mb: 1 }}>
-                  Images
+                  Imagens
                 </Typography>
                 <Stack direction="row" gap={1.5} flexWrap="wrap">
                   {imageUrls.map((url) => (
@@ -508,7 +536,7 @@ export function SellerListingEditPage() {
                         sx={{ width: 120, height: 90, objectFit: "cover", borderRadius: 1 }}
                       />
                       <IconButton
-                        aria-label="Remove image"
+                        aria-label="Remover imagem"
                         size="small"
                         onClick={() => setImageUrls((current) => current.filter((item) => item !== url))}
                         sx={{ position: "absolute", top: 4, right: 4, bgcolor: "background.paper" }}
@@ -525,7 +553,7 @@ export function SellerListingEditPage() {
                   sx={{ mt: 2 }}
                   disabled={imageUrls.length >= 8}
                 >
-                  Add product images
+                  Adicionar imagens do produto
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
@@ -539,7 +567,7 @@ export function SellerListingEditPage() {
                 </Button>
                 {selectedFiles.length > 0 && (
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                    {selectedFiles.length} image{selectedFiles.length === 1 ? "" : "s"} selected
+                    {selectedFiles.length} imagem{selectedFiles.length === 1 ? "" : "s"} selecionada{selectedFiles.length === 1 ? "" : "s"}
                   </Typography>
                 )}
 
@@ -550,7 +578,7 @@ export function SellerListingEditPage() {
                   sx={{ mt: 3 }}
                   disabled={update.isPending || isUploading}
                 >
-                  {isUploading ? "Uploading images..." : "Save changes"}
+                  {isUploading ? "Enviando imagens..." : "Salvar alterações"}
                 </Button>
               </Box>
             )}

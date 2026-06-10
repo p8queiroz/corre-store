@@ -6,6 +6,17 @@ import { Container, Grid, Typography } from "@mui/material";
 import { SEARCH_LISTINGS_QUERY } from "@/graphql/queries";
 import { ListingCard } from "@/components/listings/ListingCard";
 
+type ListingSummary = {
+  id: string;
+  slug: string;
+  title: string;
+  priceCents: number;
+  city: string;
+  state: string;
+  images?: Array<{ thumbnailUrl?: string | null; url?: string | null }>;
+  category?: { name?: string | null };
+};
+
 export default function CategoryPage() {
   const params = useParams();
   const slug = params.slug as string;
@@ -19,9 +30,9 @@ export default function CategoryPage() {
       <Typography variant="h4" fontWeight={800} gutterBottom sx={{ textTransform: "capitalize" }}>
         {slug.replace(/-/g, " ")}
       </Typography>
-      {loading && <Typography>Loading…</Typography>}
+      {loading && <Typography>Carregando...</Typography>}
       <Grid container spacing={2} sx={{ mt: 2 }}>
-        {data?.searchListings?.items?.map((listing) => (
+        {((data?.searchListings?.items ?? []) as ListingSummary[]).map((listing) => (
           <Grid key={listing.id} size={{ xs: 12, sm: 6, md: 3 }}>
             <ListingCard
               slug={listing.slug}
@@ -29,8 +40,8 @@ export default function CategoryPage() {
               priceCents={listing.priceCents}
               city={listing.city}
               state={listing.state}
-              imageUrl={listing.images?.[0]?.url}
-              categoryName={listing.category?.name}
+              imageUrl={listing.images?.[0]?.url ?? undefined}
+              categoryName={listing.category?.name ?? undefined}
             />
           </Grid>
         ))}

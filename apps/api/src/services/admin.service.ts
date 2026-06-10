@@ -109,7 +109,7 @@ export const adminService = {
       to: listing.seller.email,
       subject: "Your listing was approved",
       type: "LISTING_APPROVED",
-      htmlBody: `<p>${listing.title} is now live on StrideMarket.</p>`,
+      htmlBody: `<p>${listing.title} is now live on ReRun.</p>`,
     });
 
     return listing;

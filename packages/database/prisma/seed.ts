@@ -44,8 +44,8 @@ async function main() {
       emailVerifiedAt: new Date(),
       sellerProfile: {
         create: {
-          displayName: "Ana's Running Gear",
-          bio: "Marathon finisher selling quality pre-loved gear.",
+          displayName: "Repasses da Ana",
+          bio: "Produtos em bom estado prontos para uma nova rodada.",
           city: "São Paulo",
           state: "SP",
           isVerified: true,
@@ -61,7 +61,7 @@ async function main() {
     update: {},
     create: {
       email: "buyer@stridemarket.local",
-      name: "Carlos Buyer",
+      name: "Carlos Comprador",
       passwordHash,
       role: UserRole.USER,
       status: UserStatus.ACTIVE,
@@ -70,18 +70,18 @@ async function main() {
   });
 
   const categories = [
-    { slug: "running-shoes", name: "Running Shoes", icon: "directions_run" },
-    { slug: "hydration", name: "Hydration", icon: "water_drop" },
-    { slug: "wearables", name: "Wearables", icon: "watch" },
-    { slug: "apparel", name: "Sportswear", icon: "checkroom" },
-    { slug: "accessories", name: "Accessories", icon: "fitness_center" },
+    { slug: "running-shoes", name: "Calçados", icon: "directions_run" },
+    { slug: "hydration", name: "Hidratação", icon: "water_drop" },
+    { slug: "wearables", name: "Eletrônicos vestíveis", icon: "watch" },
+    { slug: "apparel", name: "Vestuário", icon: "checkroom" },
+    { slug: "accessories", name: "Acessórios", icon: "fitness_center" },
   ];
 
   for (const [i, cat] of categories.entries()) {
     await prisma.category.upsert({
       where: { slug: cat.slug },
-      update: {},
-      create: { ...cat, sortOrder: i, description: `${cat.name} for runners` },
+      update: { name: cat.name, icon: cat.icon, sortOrder: i, description: `${cat.name} para uma nova rodada` },
+      create: { ...cat, sortOrder: i, description: `${cat.name} para uma nova rodada` },
     });
   }
 
@@ -97,15 +97,15 @@ async function main() {
         sellerId: sellerUser.id,
         sellerProfileId: sellerUser.sellerProfile.id,
         categoryId: shoes.id,
-        title: "Nike Pegasus 40 — Marathon Beginner Friendly",
+        title: "Nike Pegasus 40 em bom estado",
         slug: "nike-pegasus-40-marathon-beginner",
         description:
-          "Lightweight daily trainer, ~200km. Great cushion for beginners building mileage.",
+          "Tênis leve, com cerca de 200km de uso. Boa opção para quem quer começar sem comprar novo.",
         priceCents: 44900,
         condition: ListingCondition.GOOD,
         city: "São Paulo",
         state: "SP",
-        tags: ["nike", "marathon", "beginner", "daily-trainer"],
+        tags: ["nike", "corrida", "iniciante", "seminovo"],
         status: ListingStatus.ACTIVE,
         moderation: ModerationDecision.APPROVED,
         publishedAt: new Date(),
@@ -124,17 +124,39 @@ async function main() {
     });
   }
 
-  await prisma.homepageBanner.createMany({
-    data: [
-      {
-        title: "Gear up for your next marathon",
-        subtitle: "Trusted running gear from verified sellers",
-        imageUrl: "/placeholders/banner-hero.jpg",
-        linkUrl: "/search?q=marathon",
-        sortOrder: 0,
-      },
-    ],
-    skipDuplicates: true,
+  const bannerData = {
+    title: "Venda o que você não usa mais",
+    subtitle: "Transforme itens parados em novas possibilidades",
+    imageUrl: "/placeholders/banner-hero.jpg",
+    linkUrl: "/search",
+    sortOrder: 0,
+    active: true,
+  };
+
+  const existingBanner = await prisma.homepageBanner.findFirst({
+    where: { sortOrder: 0 },
+    orderBy: { createdAt: "asc" },
+  });
+
+  if (existingBanner) {
+    await prisma.homepageBanner.update({
+      where: { id: existingBanner.id },
+      data: bannerData,
+    });
+  } else {
+    await prisma.homepageBanner.create({
+      data: bannerData,
+    });
+  }
+
+  await prisma.homepageBanner.updateMany({
+    where: {
+      OR: [
+        { title: "Gear up for your next marathon" },
+        { subtitle: "Trusted running gear from verified sellers" },
+      ],
+    },
+    data: bannerData,
   });
 
   console.log("Seed complete.");

@@ -9,9 +9,9 @@ export function ContactSellerButton({ listingId }: { listingId: string }) {
       variant="contained"
       size="large"
       startIcon={<MailOutlineIcon />}
-      onClick={() => alert(`Inquiry flow for listing ${listingId} — implement in Phase 2`)}
+      onClick={() => alert(`Fluxo de contato do anúncio ${listingId} — implementar na fase 2`)}
     >
-      Contact seller
+      Falar com o vendedor
     </Button>
   );
 }

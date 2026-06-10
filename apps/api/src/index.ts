@@ -1,7 +1,7 @@
 /**
  * StrideMarket API entry point
  *
- * Architecture (see docs/01-architecture.md):
+ * Architecture (see docs/PROJECT.md, "Architecture"):
  * - Express as HTTP server
  * - GraphQL at /graphql (public reads + authenticated mutations)
  * - tRPC at /trpc (type-safe procedures for Next.js)

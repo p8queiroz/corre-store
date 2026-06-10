@@ -89,13 +89,33 @@ type JobRow = {
 };
 
 const sections: Array<{ key: AdminSection; label: string; href: string }> = [
-  { key: "overview", label: "Overview", href: "/admin" },
-  { key: "listings", label: "Listings", href: "/admin/listings" },
-  { key: "users", label: "Users", href: "/admin/users" },
+  { key: "overview", label: "Visão geral", href: "/admin" },
+  { key: "listings", label: "Anúncios", href: "/admin/listings" },
+  { key: "users", label: "Usuários", href: "/admin/users" },
   { key: "banners", label: "Banners", href: "/admin/banners" },
-  { key: "reports", label: "Reports", href: "/admin/reports" },
+  { key: "reports", label: "Denúncias", href: "/admin/reports" },
   { key: "jobs", label: "Jobs", href: "/admin/jobs" },
 ];
+
+const statusLabels: Record<string, string> = {
+  ACTIVE: "Ativo",
+  ADMIN: "Admin",
+  APPROVED: "Aprovado",
+  COMPLETED: "Concluído",
+  DRAFT: "Rascunho",
+  FAILED: "Falhou",
+  FLAGGED: "Sinalizado",
+  OPEN: "Aberto",
+  PENDING: "Pendente",
+  PENDING_REVIEW: "Em revisão",
+  REJECTED: "Rejeitado",
+  REMOVED: "Removido",
+  RESOLVED: "Resolvido",
+  SELLER: "Vendedor",
+  SOLD: "Vendido",
+  SUSPENDED: "Suspenso",
+  USER: "Usuário",
+};
 
 function money(cents: number) {
   return new Intl.NumberFormat("pt-BR", {
@@ -114,7 +134,7 @@ function StatusChip({ value }: { value: string }) {
           ? "warning"
           : "default";
 
-  return <Chip label={value.replace("_", " ")} color={color} size="small" variant="outlined" />;
+  return <Chip label={statusLabels[value] ?? value.replace("_", " ")} color={color} size="small" variant="outlined" />;
 }
 
 function AdminNav({ section }: { section: AdminSection }) {
@@ -161,7 +181,7 @@ function AdminGate({ children, section }: { children: React.ReactNode; section: 
     return (
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Paper sx={{ p: 4 }}>
-          <Typography>Loading admin tools...</Typography>
+          <Typography>Carregando ferramentas de admin...</Typography>
         </Paper>
       </Container>
     );
@@ -172,13 +192,13 @@ function AdminGate({ children, section }: { children: React.ReactNode; section: 
       <Container maxWidth="sm" sx={{ py: 8 }}>
         <Paper sx={{ p: 4 }}>
           <Typography variant="h4" fontWeight={800} gutterBottom>
-            Admin access required
+            Acesso de admin necessário
           </Typography>
           <Typography color="text.secondary" sx={{ mb: 3 }}>
-            Sign in as admin@stridemarket.local to manage moderation, users, and platform content.
+            Entre como admin@stridemarket.local para gerenciar moderação, usuários e conteúdo da plataforma.
           </Typography>
           <Button component={Link} href="/login" variant="contained">
-            Sign in
+            Entrar
           </Button>
         </Paper>
       </Container>
@@ -190,10 +210,10 @@ function AdminGate({ children, section }: { children: React.ReactNode; section: 
       <Stack spacing={3}>
         <Box>
           <Typography variant="h4" fontWeight={800} gutterBottom>
-            Admin
+            Painel admin
           </Typography>
           <Typography color="text.secondary">
-            Signed in as {user.email}. Admin accounts are seed-only.
+            Logado como {user.email}. Contas admin são criadas apenas pelo seed.
           </Typography>
         </Box>
         <AdminNav section={section} />
@@ -207,13 +227,13 @@ function OverviewPanel() {
   const dashboard = trpc.admin.dashboard.useQuery();
   const counts = dashboard.data?.counts;
   const tiles = [
-    { label: "Pending listings", value: counts?.pendingListings ?? 0, icon: <ListAltIcon /> },
-    { label: "Flagged listings", value: counts?.flaggedListings ?? 0, icon: <FlagIcon /> },
-    { label: "Active listings", value: counts?.activeListings ?? 0, icon: <CheckCircleIcon /> },
-    { label: "Open reports", value: counts?.openReports ?? 0, icon: <ReportIcon /> },
-    { label: "Users", value: counts?.users ?? 0, icon: <GroupIcon /> },
-    { label: "Failed jobs", value: counts?.failedJobs ?? 0, icon: <HomeRepairServiceIcon /> },
-    { label: "Active banners", value: counts?.activeBanners ?? 0, icon: <ViewCarouselIcon /> },
+    { label: "Anúncios pendentes", value: counts?.pendingListings ?? 0, icon: <ListAltIcon /> },
+    { label: "Anúncios sinalizados", value: counts?.flaggedListings ?? 0, icon: <FlagIcon /> },
+    { label: "Anúncios ativos", value: counts?.activeListings ?? 0, icon: <CheckCircleIcon /> },
+    { label: "Denúncias abertas", value: counts?.openReports ?? 0, icon: <ReportIcon /> },
+    { label: "Usuários", value: counts?.users ?? 0, icon: <GroupIcon /> },
+    { label: "Jobs com falha", value: counts?.failedJobs ?? 0, icon: <HomeRepairServiceIcon /> },
+    { label: "Banners ativos", value: counts?.activeBanners ?? 0, icon: <ViewCarouselIcon /> },
   ];
 
   return (
@@ -243,7 +263,7 @@ function OverviewPanel() {
       </Box>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight={800} gutterBottom>
-          Recent listings
+          Anúncios recentes
         </Typography>
         <ListingsTable listings={(dashboard.data?.recentListings ?? []) as ListingRow[]} compact />
       </Paper>
@@ -274,18 +294,18 @@ function ListingsTable({ listings, compact = false }: { listings: ListingRow[]; 
   });
 
   if (!listings.length) {
-    return <Typography color="text.secondary">No listings found.</Typography>;
+    return <Typography color="text.secondary">Nenhum anúncio encontrado.</Typography>;
   }
 
   return (
     <Table size="small">
       <TableHead>
         <TableRow>
-          <TableCell>Listing</TableCell>
-          <TableCell>Seller</TableCell>
+          <TableCell>Anúncio</TableCell>
+          <TableCell>Vendedor</TableCell>
           <TableCell>Status</TableCell>
-          {!compact && <TableCell>Featured</TableCell>}
-          {!compact && <TableCell align="right">Actions</TableCell>}
+          {!compact && <TableCell>Destaque</TableCell>}
+          {!compact && <TableCell align="right">Ações</TableCell>}
         </TableRow>
       </TableHead>
       <TableBody>
@@ -295,7 +315,7 @@ function ListingsTable({ listings, compact = false }: { listings: ListingRow[]; 
               <Stack spacing={0.5}>
                 <Typography fontWeight={700}>{listing.title}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {listing.category?.name ?? "Uncategorized"} · {money(listing.priceCents)} ·{" "}
+                  {listing.category?.name ?? "Sem categoria"} · {money(listing.priceCents)} ·{" "}
                   {listing.city}, {listing.state}
                 </Typography>
                 {listing.moderationNote && (
@@ -306,7 +326,7 @@ function ListingsTable({ listings, compact = false }: { listings: ListingRow[]; 
               </Stack>
             </TableCell>
             <TableCell>
-              <Typography variant="body2">{listing.seller?.name ?? "Unknown"}</Typography>
+              <Typography variant="body2">{listing.seller?.name ?? "Desconhecido"}</Typography>
               <Typography variant="caption" color="text.secondary">
                 {listing.seller?.email}
               </Typography>
@@ -339,7 +359,7 @@ function ListingsTable({ listings, compact = false }: { listings: ListingRow[]; 
                       onClick={() => approve.mutate({ listingId: listing.id })}
                       disabled={approve.isPending}
                     >
-                      Approve
+                      Aprovar
                     </Button>
                     <Button
                       size="small"
@@ -348,14 +368,14 @@ function ListingsTable({ listings, compact = false }: { listings: ListingRow[]; 
                       startIcon={<DoNotDisturbIcon />}
                       onClick={() => setRejectingId(listing.id)}
                     >
-                      Reject
+                      Rejeitar
                     </Button>
                   </Stack>
                   {rejectingId === listing.id && (
                     <Stack direction={{ xs: "column", md: "row" }} gap={1}>
                       <TextField
                         size="small"
-                        label="Moderation note"
+                        label="Nota de moderação"
                         value={note}
                         onChange={(event) => setNote(event.target.value)}
                       />
@@ -366,7 +386,7 @@ function ListingsTable({ listings, compact = false }: { listings: ListingRow[]; 
                         onClick={() => reject.mutate({ listingId: listing.id, note })}
                         disabled={note.trim().length < 3 || reject.isPending}
                       >
-                        Confirm
+                        Confirmar
                       </Button>
                     </Stack>
                   )}
@@ -388,13 +408,13 @@ function ListingsPanel() {
     <Stack spacing={3}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight={800} gutterBottom>
-          Moderation queue
+          Fila de moderação
         </Typography>
         <ListingsTable listings={(queue.data ?? []) as ListingRow[]} />
       </Paper>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight={800} gutterBottom>
-          All listings
+          Todos os anúncios
         </Typography>
         <ListingsTable listings={(listings.data ?? []) as ListingRow[]} />
       </Paper>
@@ -415,16 +435,16 @@ function UsersPanel() {
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="h6" fontWeight={800} gutterBottom>
-        Users
+        Usuários
       </Typography>
       <Table size="small">
         <TableHead>
           <TableRow>
-            <TableCell>User</TableCell>
-            <TableCell>Role</TableCell>
+            <TableCell>Usuário</TableCell>
+            <TableCell>Perfil</TableCell>
             <TableCell>Status</TableCell>
-            <TableCell>Seller profile</TableCell>
-            <TableCell align="right">Actions</TableCell>
+            <TableCell>Perfil de vendedor</TableCell>
+            <TableCell align="right">Ações</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -442,7 +462,7 @@ function UsersPanel() {
               <TableCell>
                 <StatusChip value={user.status} />
               </TableCell>
-              <TableCell>{user.sellerProfile?.displayName ?? "None"}</TableCell>
+              <TableCell>{user.sellerProfile?.displayName ?? "Nenhum"}</TableCell>
               <TableCell align="right">
                 <Stack direction="row" gap={1} justifyContent="flex-end" flexWrap="wrap">
                   {user.role === "USER" && (
@@ -451,7 +471,7 @@ function UsersPanel() {
                       variant="outlined"
                       onClick={() => promote.mutate({ userId: user.id, role: "SELLER" })}
                     >
-                      Make seller
+                      Tornar vendedor
                     </Button>
                   )}
                   {user.role !== "ADMIN" && (
@@ -461,7 +481,7 @@ function UsersPanel() {
                       color="warning"
                       onClick={() => promote.mutate({ userId: user.id, role: "ADMIN" })}
                     >
-                      Make admin
+                      Tornar admin
                     </Button>
                   )}
                   <Button
@@ -475,7 +495,7 @@ function UsersPanel() {
                       })
                     }
                   >
-                    {user.status === "SUSPENDED" ? "Reactivate" : "Suspend"}
+                    {user.status === "SUSPENDED" ? "Reativar" : "Suspender"}
                   </Button>
                 </Stack>
               </TableCell>
@@ -509,22 +529,22 @@ function BannersPanel() {
     <Stack spacing={3}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight={800} gutterBottom>
-          Create banner
+          Criar banner
         </Typography>
         <Stack direction={{ xs: "column", md: "row" }} gap={2}>
-          <TextField label="Title" value={title} onChange={(event) => setTitle(event.target.value)} />
+          <TextField label="Título" value={title} onChange={(event) => setTitle(event.target.value)} />
           <TextField
-            label="Subtitle"
+            label="Subtítulo"
             value={subtitle}
             onChange={(event) => setSubtitle(event.target.value)}
           />
           <TextField
-            label="Image URL"
+            label="URL da imagem"
             value={imageUrl}
             onChange={(event) => setImageUrl(event.target.value)}
           />
           <TextField
-            label="Link URL"
+            label="URL do link"
             value={linkUrl}
             onChange={(event) => setLinkUrl(event.target.value)}
           />
@@ -542,13 +562,13 @@ function BannersPanel() {
             }
             disabled={title.trim().length < 3 || !imageUrl}
           >
-            Create
+            Criar
           </Button>
         </Stack>
       </Paper>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight={800} gutterBottom>
-          Homepage banners
+          Banners da home
         </Typography>
         <Stack divider={<Divider flexItem />} spacing={2}>
           {((banners.data ?? []) as BannerRow[]).map((banner) => (
@@ -561,13 +581,13 @@ function BannersPanel() {
               <Box sx={{ flex: 1 }}>
                 <Typography fontWeight={700}>{banner.title}</Typography>
                 <Typography variant="body2" color="text.secondary">
-                  {banner.subtitle ?? "No subtitle"} · {banner.imageUrl}
+                  {banner.subtitle ?? "Sem subtítulo"} · {banner.imageUrl}
                 </Typography>
               </Box>
               <TextField
                 select
                 size="small"
-                label="Sort"
+                label="Ordem"
                 value={banner.sortOrder}
                 onChange={(event) =>
                   update.mutate({ id: banner.id, sortOrder: Number(event.target.value) })
@@ -589,7 +609,7 @@ function BannersPanel() {
                     }
                   />
                 }
-                label="Active"
+                label="Ativo"
               />
             </Stack>
           ))}
@@ -609,7 +629,7 @@ function ReportsPanel() {
   return (
     <Paper sx={{ p: 3 }}>
       <Typography variant="h6" fontWeight={800} gutterBottom>
-        Reports
+        Denúncias
       </Typography>
       <Stack divider={<Divider flexItem />} spacing={2}>
         {((reports.data ?? []) as ReportRow[]).map((report) => (
@@ -620,14 +640,14 @@ function ReportsPanel() {
                 <StatusChip value={report.resolved ? "RESOLVED" : "OPEN"} />
               </Stack>
               <Typography variant="body2" color="text.secondary">
-                Reporter: {report.reporter.name} ({report.reporter.email})
+                Denunciante: {report.reporter.name} ({report.reporter.email})
               </Typography>
               <Typography variant="body2">
-                Listing:{" "}
+                Anúncio:{" "}
                 {report.listing ? (
                   <Link href={`/listings/${report.listing.slug}`}>{report.listing.title}</Link>
                 ) : (
-                  "Removed listing"
+                  "Anúncio removido"
                 )}
               </Typography>
               {report.details && (
@@ -640,11 +660,11 @@ function ReportsPanel() {
               variant="outlined"
               onClick={() => resolve.mutate({ id: report.id, resolved: !report.resolved })}
             >
-              {report.resolved ? "Reopen" : "Resolve"}
+              {report.resolved ? "Reabrir" : "Resolver"}
             </Button>
           </Stack>
         ))}
-        {!reports.data?.length && <Typography color="text.secondary">No reports found.</Typography>}
+        {!reports.data?.length && <Typography color="text.secondary">Nenhuma denúncia encontrada.</Typography>}
       </Stack>
     </Paper>
   );
@@ -669,15 +689,15 @@ function JobsPanel() {
       </Box>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h6" fontWeight={800} gutterBottom>
-          Background jobs
+          Jobs em segundo plano
         </Typography>
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Queue</TableCell>
+              <TableCell>Fila</TableCell>
               <TableCell>Status</TableCell>
-              <TableCell>Attempts</TableCell>
-              <TableCell>Error</TableCell>
+              <TableCell>Tentativas</TableCell>
+              <TableCell>Erro</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -688,7 +708,7 @@ function JobsPanel() {
                   <StatusChip value={job.status} />
                 </TableCell>
                 <TableCell>{job.attempts}</TableCell>
-                <TableCell>{job.error ?? "None"}</TableCell>
+                <TableCell>{job.error ?? "Nenhum"}</TableCell>
               </TableRow>
             ))}
           </TableBody>

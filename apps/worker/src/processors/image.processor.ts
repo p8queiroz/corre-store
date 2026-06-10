@@ -12,5 +12,5 @@ export async function processImageJob(
 ): Promise<void> {
   const filename = payload.filename as string | undefined;
   console.log(`[worker:image] process ${filename ?? "unknown"}`);
-  // TODO: integrate sharp + S3 — see docs/09-media-uploads.md
+  // TODO: integrate sharp + S3 — see docs/PROJECT.md, "Media Uploads"
 }
