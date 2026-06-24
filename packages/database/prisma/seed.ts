@@ -38,6 +38,13 @@ async function main() {
     create: {
       email: "seller@stridemarket.local",
       name: "Ana Runner",
+      whatsappNumber: "5511999990000",
+      whatsappConfirmedAt: new Date(),
+      city: "São Paulo",
+      state: "SP",
+      bio: "Corredora amadora desapegando de equipamentos em bom estado.",
+      instagramUrl: "https://instagram.com/anarunner",
+      stravaUrl: "https://www.strava.com/athletes/anarunner",
       passwordHash,
       role: UserRole.SELLER,
       status: UserStatus.ACTIVE,
@@ -62,6 +69,8 @@ async function main() {
     create: {
       email: "buyer@stridemarket.local",
       name: "Carlos Comprador",
+      city: "Fortaleza",
+      state: "CE",
       passwordHash,
       role: UserRole.USER,
       status: UserStatus.ACTIVE,

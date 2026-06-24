@@ -1,21 +1,57 @@
 import { z } from "zod";
 import {
   aiListingAssistSchema,
+  avatarSchema,
+  changePasswordSchema,
+  contactSellerSchema,
   createListingSchema,
+  listingStatusActionSchema,
   naturalLanguageSearchSchema,
+  profileSchema,
+  reportSchema,
   updateListingSchema,
 } from "@stride/shared";
 import { router, publicProcedure, protectedProcedure, roleProcedure } from "./trpc.js";
 import { listingService } from "../services/listing.service.js";
 import { aiService } from "../services/ai.service.js";
 import { adminService } from "../services/admin.service.js";
-import { UserRole, UserStatus } from "@stride/database";
+import { ListingStatus, UserRole, UserStatus } from "@stride/database";
+import { accountService } from "../services/account.service.js";
+import { contactService } from "../services/contact.service.js";
 
 /**
  * tRPC — end-to-end type safety between API and Next.js client.
  * Use for dashboards and forms; GraphQL remains ideal for listing feeds.
  */
 export const appRouter = router({
+  account: router({
+    me: protectedProcedure.query(({ ctx }) =>
+      accountService.me(ctx.session.userId)
+    ),
+
+    updateProfile: protectedProcedure
+      .input(profileSchema)
+      .mutation(({ ctx, input }) =>
+        accountService.updateProfile(ctx.session.userId, input)
+      ),
+
+    updateAvatar: protectedProcedure
+      .input(avatarSchema)
+      .mutation(({ ctx, input }) =>
+        accountService.updateAvatar(ctx.session.userId, input)
+      ),
+
+    changePassword: protectedProcedure
+      .input(changePasswordSchema)
+      .mutation(({ ctx, input }) =>
+        accountService.changePassword(ctx.session.userId, input)
+      ),
+
+    deactivate: protectedProcedure.mutation(({ ctx }) =>
+      accountService.deactivate(ctx.session.userId)
+    ),
+  }),
+
   listings: router({
     search: publicProcedure
       .input(z.record(z.unknown()))
@@ -24,6 +60,10 @@ export const appRouter = router({
     bySlug: publicProcedure
       .input(z.object({ slug: z.string() }))
       .query(({ input }) => listingService.getBySlug(input.slug)),
+
+    publicSeller: publicProcedure
+      .input(z.object({ userId: z.string().cuid() }))
+      .query(({ input }) => listingService.getPublicSeller(input.userId)),
 
     create: roleProcedure("SELLER")
       .input(createListingSchema)
@@ -55,6 +95,65 @@ export const appRouter = router({
           input.listingId,
           input.data
         )
+      ),
+
+    pauseMine: roleProcedure("SELLER")
+      .input(listingStatusActionSchema)
+      .mutation(({ ctx, input }) =>
+        listingService.setMineStatus(
+          ctx.session.userId,
+          ctx.session.role,
+          input.listingId,
+          ListingStatus.PAUSED
+        )
+      ),
+
+    markSoldMine: roleProcedure("SELLER")
+      .input(listingStatusActionSchema)
+      .mutation(({ ctx, input }) =>
+        listingService.setMineStatus(
+          ctx.session.userId,
+          ctx.session.role,
+          input.listingId,
+          ListingStatus.SOLD
+        )
+      ),
+
+    reactivateMine: roleProcedure("SELLER")
+      .input(listingStatusActionSchema)
+      .mutation(({ ctx, input }) =>
+        listingService.setMineStatus(
+          ctx.session.userId,
+          ctx.session.role,
+          input.listingId,
+          ListingStatus.ACTIVE
+        )
+      ),
+
+    duplicateMine: roleProcedure("SELLER")
+      .input(listingStatusActionSchema)
+      .mutation(({ ctx, input }) =>
+        listingService.duplicateMine(ctx.session.userId, ctx.session.role, input.listingId)
+      ),
+  }),
+
+  contact: router({
+    seller: protectedProcedure
+      .input(contactSellerSchema)
+      .mutation(({ ctx, input }) =>
+        contactService.contactSeller(ctx.session.userId, input)
+      ),
+
+    myInquiries: protectedProcedure.query(({ ctx }) =>
+      contactService.myInquiries(ctx.session.userId)
+    ),
+  }),
+
+  reports: router({
+    create: protectedProcedure
+      .input(reportSchema)
+      .mutation(({ ctx, input }) =>
+        contactService.report(ctx.session.userId, input)
       ),
   }),
 

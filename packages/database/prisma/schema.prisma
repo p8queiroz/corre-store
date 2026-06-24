@@ -90,8 +90,17 @@ model User {
   passwordHash      String
   name              String
   avatarUrl         String?
+  whatsappNumber    String?
+  whatsappConfirmedAt DateTime?
+  city              String?
+  state             String?
+  bio               String?
+  instagramUrl      String?
+  stravaUrl         String?
+  websiteUrl        String?
   role              UserRole   @default(USER)
   status            UserStatus @default(PENDING_VERIFICATION)
+  deactivatedAt     DateTime?
   createdAt         DateTime   @default(now())
   updatedAt         DateTime   @updatedAt
 
@@ -99,9 +108,12 @@ model User {
   listings          Listing[]          @relation("SellerListings")
   favorites         Favorite[]
   inquiriesSent     Inquiry[]          @relation("BuyerInquiries")
+  inquiriesReceived Inquiry[]          @relation("SellerInquiriesByUser")
   refreshTokens     RefreshToken[]
   emailTokens       EmailToken[]
+  passwordResetTokens PasswordResetToken[]
   reportsFiled      Report[]           @relation("Reporter")
+  reportsReceived   Report[]           @relation("ReportedSeller")
   chatSessions      ChatSession[]
 
   @@index([email])
@@ -130,6 +142,18 @@ model EmailToken {
   createdAt DateTime @default(now())
 
   @@index([userId, type])
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([userId, expiresAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -205,6 +229,10 @@ model Listing {
   // AI-generated metadata (embedding stored for semantic search)
   embedding       Float[]          @default([])
   aiSummary       String?
+  aiModerationResult Json?
+  aiModerationConfidence Float?
+  aiModerationFlags String[]       @default([])
+  imageQualityNotes Json?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -229,6 +257,12 @@ model ListingImage {
   thumbnailUrl String?
   sortOrder   Int      @default(0)
   altText     String?
+  mimeType    String?
+  fileSizeBytes Int?
+  width       Int?
+  height      Int?
+  qualityFlags String[] @default([])
+  qualityNotes Json?
   createdAt   DateTime @default(now())
 
   @@index([listingId])
@@ -256,15 +290,20 @@ model Inquiry {
   listing         Listing       @relation(fields: [listingId], references: [id])
   buyerId         String
   buyer           User          @relation("BuyerInquiries", fields: [buyerId], references: [id])
+  sellerId        String?
+  seller          User?         @relation("SellerInquiriesByUser", fields: [sellerId], references: [id])
   sellerProfileId String
   sellerProfile   SellerProfile @relation("SellerInquiries", fields: [sellerProfileId], references: [id])
+  contactMethod   String        @default("WHATSAPP")
   message         String
+  contactUrl      String?
   status          InquiryStatus @default(OPEN)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
   @@index([listingId])
   @@index([buyerId])
+  @@index([sellerId])
   @@index([sellerProfileId])
 }
 
@@ -272,6 +311,8 @@ model Report {
   id          String   @id @default(cuid())
   listingId   String?
   listing     Listing? @relation(fields: [listingId], references: [id])
+  sellerId    String?
+  seller      User?    @relation("ReportedSeller", fields: [sellerId], references: [id])
   reporterId  String
   reporter    User     @relation("Reporter", fields: [reporterId], references: [id])
   reason      String
@@ -280,6 +321,7 @@ model Report {
   createdAt   DateTime @default(now())
 
   @@index([listingId])
+  @@index([sellerId])
 }
 
 // ---------------------------------------------------------------------------
@@ -310,6 +352,7 @@ model ModerationLog {
   decision   ModerationDecision
   score      Float?
   reason     String?
+  flags      Json?
   createdAt  DateTime           @default(now())
 
   @@index([listingId])

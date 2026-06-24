@@ -152,6 +152,69 @@ export const listingService = {
     });
   },
 
+  async setMineStatus(
+    userId: string,
+    role: string,
+    listingId: string,
+    status: ListingStatus
+  ) {
+    const existing = await this.getMine(userId, role, listingId);
+    if (status === ListingStatus.ACTIVE && existing.moderation !== ModerationDecision.APPROVED) {
+      throw new AppError(400, "Only approved listings can be reactivated", "NOT_APPROVED");
+    }
+
+    return prisma.listing.update({
+      where: { id: existing.id },
+      data: {
+        status,
+        soldAt: status === ListingStatus.SOLD ? new Date() : null,
+        publishedAt:
+          status === ListingStatus.ACTIVE && !existing.publishedAt
+            ? new Date()
+            : existing.publishedAt,
+      },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        category: true,
+      },
+    });
+  },
+
+  async duplicateMine(userId: string, role: string, listingId: string) {
+    const existing = await this.getMine(userId, role, listingId);
+    const slug = `${slugify(existing.title)}-${Date.now()}`;
+
+    return prisma.listing.create({
+      data: {
+        sellerId: existing.sellerId,
+        sellerProfileId: existing.sellerProfileId,
+        categoryId: existing.categoryId,
+        title: `${existing.title} (copy)`,
+        slug,
+        description: existing.description,
+        priceCents: existing.priceCents,
+        condition: existing.condition,
+        city: existing.city,
+        state: existing.state,
+        tags: existing.tags,
+        status: ListingStatus.DRAFT,
+        moderation: ModerationDecision.PENDING,
+        images: {
+          create: existing.images.map((image, sortOrder) => ({
+            url: image.url,
+            thumbnailUrl: image.thumbnailUrl,
+            altText: image.altText,
+            sortOrder,
+          })),
+        },
+      },
+      include: {
+        images: { orderBy: { sortOrder: "asc" } },
+        category: true,
+      },
+    });
+  },
+
   async getMine(userId: string, role: string, listingId: string) {
     const listing = await prisma.listing.findUnique({
       where: { id: listingId },
@@ -239,5 +302,67 @@ export const listingService = {
         category: true,
       },
     });
+  },
+
+  async getPublicSeller(userId: string) {
+    const seller = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        name: true,
+        avatarUrl: true,
+        city: true,
+        state: true,
+        bio: true,
+        instagramUrl: true,
+        stravaUrl: true,
+        websiteUrl: true,
+        createdAt: true,
+        whatsappConfirmedAt: true,
+        sellerProfile: true,
+      },
+    });
+
+    if (!seller?.sellerProfile) {
+      throw new AppError(404, "Seller not found", "NOT_FOUND");
+    }
+
+    const [approvedListings, activeListings, listings] = await Promise.all([
+      prisma.listing.count({
+        where: { sellerId: userId, moderation: ModerationDecision.APPROVED },
+      }),
+      prisma.listing.count({
+        where: {
+          sellerId: userId,
+          status: ListingStatus.ACTIVE,
+          moderation: ModerationDecision.APPROVED,
+        },
+      }),
+      prisma.listing.findMany({
+        where: {
+          sellerId: userId,
+          status: ListingStatus.ACTIVE,
+          moderation: ModerationDecision.APPROVED,
+        },
+        take: 24,
+        orderBy: { publishedAt: "desc" },
+        include: {
+          images: { orderBy: { sortOrder: "asc" }, take: 1 },
+          category: true,
+        },
+      }),
+    ]);
+
+    return {
+      seller,
+      trust: {
+        joinedAt: seller.createdAt,
+        approvedListings,
+        activeListings,
+        whatsappConfirmed: Boolean(seller.whatsappConfirmedAt),
+        profileVerified: seller.sellerProfile.isVerified,
+      },
+      listings,
+    };
   },
 };

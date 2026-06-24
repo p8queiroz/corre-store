@@ -166,11 +166,10 @@ export const authService = {
     if (!user) return { success: true };
 
     const resetToken = randomBytes(32).toString("hex");
-    await prisma.emailToken.create({
+    await prisma.passwordResetToken.create({
       data: {
         userId: user.id,
         tokenHash: hashToken(resetToken),
-        type: "reset",
         expiresAt: new Date(Date.now() + 60 * 60 * 1000),
       },
     });
@@ -188,8 +187,8 @@ export const authService = {
   async resetPassword(input: z.infer<typeof resetPasswordSchema>) {
     const data = resetPasswordSchema.parse(input);
     const tokenHash = hashToken(data.token);
-    const record = await prisma.emailToken.findFirst({
-      where: { tokenHash, type: "reset", usedAt: null },
+    const record = await prisma.passwordResetToken.findFirst({
+      where: { tokenHash, usedAt: null },
     });
 
     if (!record || record.expiresAt < new Date()) {
@@ -199,8 +198,12 @@ export const authService = {
     const passwordHash = await hash(data.password, BCRYPT_ROUNDS);
 
     await prisma.$transaction([
-      prisma.emailToken.update({
+      prisma.passwordResetToken.update({
         where: { id: record.id },
+        data: { usedAt: new Date() },
+      }),
+      prisma.passwordResetToken.updateMany({
+        where: { userId: record.userId, usedAt: null },
         data: { usedAt: new Date() },
       }),
       prisma.user.update({

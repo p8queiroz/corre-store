@@ -35,8 +35,21 @@ export const adminService = {
       orderBy: { createdAt: "desc" },
       include: {
         category: true,
-        seller: { select: { id: true, name: true, email: true } },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            city: true,
+            state: true,
+            whatsappConfirmedAt: true,
+            sellerProfile: true,
+          },
+        },
         images: { orderBy: { sortOrder: "asc" }, take: 1 },
+        reports: { orderBy: { createdAt: "desc" }, take: 5 },
+        moderationLogs: { orderBy: { createdAt: "desc" }, take: 5 },
       },
     });
 
@@ -67,8 +80,20 @@ export const adminService = {
       orderBy: { createdAt: "asc" },
       include: {
         category: true,
-        seller: { select: { id: true, name: true, email: true } },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            city: true,
+            state: true,
+            whatsappConfirmedAt: true,
+            sellerProfile: true,
+          },
+        },
         images: { orderBy: { sortOrder: "asc" }, take: 1 },
+        reports: { orderBy: { createdAt: "desc" }, take: 5 },
         moderationLogs: { orderBy: { createdAt: "desc" }, take: 3 },
       },
     });
@@ -80,8 +105,21 @@ export const adminService = {
       orderBy: { createdAt: "desc" },
       include: {
         category: true,
-        seller: { select: { id: true, name: true, email: true } },
+        seller: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            avatarUrl: true,
+            city: true,
+            state: true,
+            whatsappConfirmedAt: true,
+            sellerProfile: true,
+          },
+        },
         images: { orderBy: { sortOrder: "asc" }, take: 1 },
+        reports: { orderBy: { createdAt: "desc" }, take: 5 },
+        moderationLogs: { orderBy: { createdAt: "desc" }, take: 5 },
       },
     });
   },
@@ -232,6 +270,7 @@ export const adminService = {
             category: true,
           },
         },
+        seller: { select: { id: true, name: true, email: true, status: true } },
       },
     });
   },
