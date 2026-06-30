@@ -11,6 +11,7 @@ import {
   Button,
   Chip,
   Container,
+  Divider,
   IconButton,
   MenuItem,
   Paper,
@@ -222,6 +223,27 @@ function SellerGate({ children }: { children: React.ReactNode }) {
 
 export function SellerListingsPage() {
   const listings = trpc.listings.listMine.useQuery();
+  const account = trpc.account.me.useQuery();
+  const utils = trpc.useUtils();
+  const pause = trpc.listings.pauseMine.useMutation({ onSuccess: async () => utils.listings.listMine.invalidate() });
+  const sold = trpc.listings.markSoldMine.useMutation({ onSuccess: async () => utils.listings.listMine.invalidate() });
+  const reactivate = trpc.listings.reactivateMine.useMutation({ onSuccess: async () => utils.listings.listMine.invalidate() });
+  const duplicate = trpc.listings.duplicateMine.useMutation({ onSuccess: async () => utils.listings.listMine.invalidate() });
+  const rows = (listings.data ?? []) as ListingRow[];
+  const grouped = [
+    { title: "Rascunhos", items: rows.filter((row) => row.status === "DRAFT") },
+    { title: "Em revisão", items: rows.filter((row) => row.status === "PENDING_REVIEW") },
+    { title: "Ativos", items: rows.filter((row) => row.status === "ACTIVE") },
+    { title: "Rejeitados", items: rows.filter((row) => row.status === "REJECTED") },
+    { title: "Vendidos e pausados", items: rows.filter((row) => ["SOLD", "PAUSED", "REMOVED"].includes(row.status)) },
+  ];
+  const checklist = [
+    { label: "Nome público", done: Boolean(account.data?.name) },
+    { label: "WhatsApp", done: Boolean(account.data?.whatsappNumber) },
+    { label: "Cidade e estado", done: Boolean(account.data?.city && account.data?.state) },
+    { label: "Bio", done: Boolean(account.data?.bio) },
+    { label: "Foto", done: Boolean(account.data?.avatarUrl) },
+  ];
 
   return (
     <SellerGate>
@@ -248,66 +270,117 @@ export function SellerListingsPage() {
 
           <Paper sx={{ p: 3 }}>
             <Stack spacing={2}>
+              <Typography variant="h6" fontWeight={800}>
+                Checklist do perfil de vendedor
+              </Typography>
+              <Stack direction="row" gap={1} flexWrap="wrap">
+                {checklist.map((item) => (
+                  <Chip
+                    key={item.label}
+                    label={item.label}
+                    color={item.done ? "success" : "default"}
+                    variant={item.done ? "filled" : "outlined"}
+                  />
+                ))}
+              </Stack>
+              <Button component={Link} href="/seller/profile" variant="outlined" sx={{ alignSelf: "flex-start" }}>
+                Completar perfil
+              </Button>
+            </Stack>
+          </Paper>
+
+          <Paper sx={{ p: 3 }}>
+            <Stack spacing={2}>
               {listings.isLoading && <Typography>Carregando anúncios...</Typography>}
               {listings.error && <Alert severity="error">{listings.error.message}</Alert>}
+              {(pause.error || sold.error || reactivate.error || duplicate.error) && (
+                <Alert severity="error">
+                  {pause.error?.message || sold.error?.message || reactivate.error?.message || duplicate.error?.message}
+                </Alert>
+              )}
               {!listings.isLoading && !listings.data?.length && (
                 <Typography color="text.secondary">Você ainda não tem anúncios.</Typography>
               )}
-              {((listings.data ?? []) as ListingRow[]).map((listing) => (
-                <Stack
-                  key={listing.id}
-                  direction={{ xs: "column", md: "row" }}
-                  gap={2}
-                  alignItems={{ xs: "stretch", md: "center" }}
-                  sx={{ borderBottom: 1, borderColor: "divider", pb: 2 }}
-                >
-                  <Box
-                    component="img"
-                    src={resolveMediaUrl(listing.images[0]?.thumbnailUrl ?? listing.images[0]?.url) ?? "/placeholders/shoe-1-thumb.jpg"}
-                    alt={listing.title}
-                    sx={{
-                      width: { xs: "100%", md: 112 },
-                      height: 84,
-                      objectFit: "cover",
-                      borderRadius: 1,
-                      bgcolor: "grey.100",
-                    }}
-                  />
-                  <Box sx={{ flex: 1 }}>
-                    <Typography fontWeight={800}>{listing.title}</Typography>
+              {grouped.map((group) => (
+                <Stack key={group.title} spacing={1.5}>
+                  <Typography variant="h6" fontWeight={800}>
+                    {group.title} ({group.items.length})
+                  </Typography>
+                  {!group.items.length && (
                     <Typography variant="body2" color="text.secondary">
-                      {listing.category?.name ?? "Sem categoria"} · {money(listing.priceCents)} ·{" "}
-                      {listing.city}, {listing.state}
+                      Nenhum anúncio nesta etapa.
                     </Typography>
-                    <Stack direction="row" gap={0.75} flexWrap="wrap" sx={{ mt: 1 }}>
-                      <StatusChip value={listing.status} />
-                      <StatusChip value={listing.moderation} />
+                  )}
+                  {group.items.map((listing) => (
+                    <Stack
+                      key={listing.id}
+                      direction={{ xs: "column", md: "row" }}
+                      gap={2}
+                      alignItems={{ xs: "stretch", md: "center" }}
+                      sx={{ borderBottom: 1, borderColor: "divider", pb: 2 }}
+                    >
+                      <Box
+                        component="img"
+                        src={resolveMediaUrl(listing.images[0]?.thumbnailUrl ?? listing.images[0]?.url) ?? "/placeholders/shoe-1-thumb.jpg"}
+                        alt={listing.title}
+                        sx={{
+                          width: { xs: "100%", md: 112 },
+                          height: 84,
+                          objectFit: "cover",
+                          borderRadius: 1,
+                          bgcolor: "grey.100",
+                        }}
+                      />
+                      <Box sx={{ flex: 1 }}>
+                        <Typography fontWeight={800}>{listing.title}</Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {listing.category?.name ?? "Sem categoria"} · {money(listing.priceCents)} ·{" "}
+                          {listing.city}, {listing.state}
+                        </Typography>
+                        <Stack direction="row" gap={0.75} flexWrap="wrap" sx={{ mt: 1 }}>
+                          <StatusChip value={listing.status} />
+                          <StatusChip value={listing.moderation} />
+                        </Stack>
+                        {listing.moderationNote && (
+                          <Alert severity={listing.status === "REJECTED" ? "error" : "info"} sx={{ mt: 1 }}>
+                            {listing.moderationNote}
+                            {listing.status === "REJECTED" && (
+                              <Typography variant="body2" sx={{ mt: 0.5 }}>
+                                Atualize título, descrição, categoria e imagens com evidências claras do produto antes de reenviar.
+                              </Typography>
+                            )}
+                          </Alert>
+                        )}
+                      </Box>
+                      <Stack direction="row" gap={1} flexWrap="wrap" justifyContent={{ xs: "flex-start", md: "flex-end" }}>
+                        <Button component={Link} href={`/listings/${listing.slug}`} size="small" variant="outlined">
+                          Ver
+                        </Button>
+                        <Button component={Link} href={`/seller/listings/${listing.id}/edit`} size="small" variant="contained" startIcon={<EditIcon />}>
+                          Editar
+                        </Button>
+                        {listing.status === "ACTIVE" && (
+                          <>
+                            <Button size="small" variant="outlined" onClick={() => pause.mutate({ listingId: listing.id })}>
+                              Pausar
+                            </Button>
+                            <Button size="small" variant="outlined" color="success" onClick={() => sold.mutate({ listingId: listing.id })}>
+                              Marcar vendido
+                            </Button>
+                          </>
+                        )}
+                        {listing.status === "PAUSED" && (
+                          <Button size="small" variant="outlined" onClick={() => reactivate.mutate({ listingId: listing.id })}>
+                            Reativar
+                          </Button>
+                        )}
+                        <Button size="small" variant="text" onClick={() => duplicate.mutate({ listingId: listing.id })}>
+                          Duplicar
+                        </Button>
+                      </Stack>
                     </Stack>
-                    {listing.moderationNote && (
-                      <Typography variant="body2" color="error.main" sx={{ mt: 1 }}>
-                        {listing.moderationNote}
-                      </Typography>
-                    )}
-                  </Box>
-                  <Stack direction="row" gap={1}>
-                    <Button
-                      component={Link}
-                      href={`/listings/${listing.slug}`}
-                      size="small"
-                      variant="outlined"
-                    >
-                      Ver
-                    </Button>
-                    <Button
-                      component={Link}
-                      href={`/seller/listings/${listing.id}/edit`}
-                      size="small"
-                      variant="contained"
-                      startIcon={<EditIcon />}
-                    >
-                      Editar
-                    </Button>
-                  </Stack>
+                  ))}
+                  <Divider />
                 </Stack>
               ))}
             </Stack>

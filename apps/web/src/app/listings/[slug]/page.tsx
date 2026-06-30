@@ -7,11 +7,13 @@ import {
   Typography,
   Button,
 } from "@mui/material";
+import Link from "next/link";
 import { getApolloClient } from "@/lib/apollo-server";
 import { LISTING_DETAIL_QUERY } from "@/graphql/queries";
 import { notFound } from "next/navigation";
 import { ContactSellerButton } from "@/components/listings/ContactSellerButton";
 import { resolveMediaUrl } from "@/lib/media";
+import { ReportAction } from "@/components/safety/ReportAction";
 
 const conditionLabels: Record<string, string> = {
   NEW: "Novo",
@@ -32,7 +34,7 @@ type ListingDetail = {
   tags: string[];
   images?: Array<{ url?: string | null }>;
   category: { name: string };
-  seller: { name: string };
+  seller: { id: string; name: string; avatarUrl?: string | null };
 };
 
 function formatPrice(cents: number): string {
@@ -88,16 +90,26 @@ export default async function ListingDetailPage({
               <Chip key={tag} label={tag} variant="outlined" size="small" />
             ))}
           </Stack>
-          <ContactSellerButton listingId={listing.id} />
+          <ContactSellerButton listingId={listing.id} listingTitle={listing.title} />
           <Typography variant="h6" sx={{ mt: 4, mb: 1 }}>
             Descrição
           </Typography>
           <Typography variant="body1" color="text.secondary" sx={{ whiteSpace: "pre-wrap" }}>
             {listing.description}
           </Typography>
-          <Typography variant="subtitle2" sx={{ mt: 4 }}>
-            Vendedor: {listing.seller.name}
-          </Typography>
+          <Stack spacing={1.5} sx={{ mt: 4 }}>
+            <Typography variant="subtitle2">
+              Vendedor:{" "}
+              <Button component={Link} href={`/sellers/${listing.seller.id}`} size="small">
+                {listing.seller.name}
+              </Button>
+            </Typography>
+            <ReportAction
+              listingId={listing.id}
+              sellerId={listing.seller.id}
+              label="Denunciar anúncio"
+            />
+          </Stack>
         </Grid>
       </Grid>
     </Container>

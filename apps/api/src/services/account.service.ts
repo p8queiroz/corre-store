@@ -71,11 +71,19 @@ export const accountService = {
         sellerProfile:
           existing.role === UserRole.SELLER || existing.role === UserRole.ADMIN
             ? {
-                update: {
-                  displayName: input.name,
-                  bio: emptyToNull(input.bio),
-                  city: emptyToNull(input.city),
-                  state: emptyToNull(input.state),
+                upsert: {
+                  create: {
+                    displayName: input.name,
+                    bio: emptyToNull(input.bio),
+                    city: emptyToNull(input.city),
+                    state: emptyToNull(input.state),
+                  },
+                  update: {
+                    displayName: input.name,
+                    bio: emptyToNull(input.bio),
+                    city: emptyToNull(input.city),
+                    state: emptyToNull(input.state),
+                  },
                 },
               }
             : undefined,

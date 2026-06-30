@@ -34,7 +34,39 @@ async function main() {
 
   const sellerUser = await prisma.user.upsert({
     where: { email: "seller@stridemarket.local" },
-    update: {},
+    update: {
+      name: "Ana Runner",
+      whatsappNumber: "5511999990000",
+      whatsappConfirmedAt: new Date(),
+      city: "São Paulo",
+      state: "SP",
+      bio: "Corredora amadora desapegando de equipamentos em bom estado.",
+      instagramUrl: "https://instagram.com/anarunner",
+      stravaUrl: "https://www.strava.com/athletes/anarunner",
+      role: UserRole.SELLER,
+      status: UserStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
+      sellerProfile: {
+        upsert: {
+          create: {
+            displayName: "Repasses da Ana",
+            bio: "Produtos em bom estado prontos para uma nova rodada.",
+            city: "São Paulo",
+            state: "SP",
+            isVerified: true,
+            approvedAt: new Date(),
+          },
+          update: {
+            displayName: "Repasses da Ana",
+            bio: "Produtos em bom estado prontos para uma nova rodada.",
+            city: "São Paulo",
+            state: "SP",
+            isVerified: true,
+            approvedAt: new Date(),
+          },
+        },
+      },
+    },
     create: {
       email: "seller@stridemarket.local",
       name: "Ana Runner",
@@ -65,7 +97,13 @@ async function main() {
 
   await prisma.user.upsert({
     where: { email: "buyer@stridemarket.local" },
-    update: {},
+    update: {
+      name: "Carlos Comprador",
+      city: "Fortaleza",
+      state: "CE",
+      status: UserStatus.ACTIVE,
+      emailVerifiedAt: new Date(),
+    },
     create: {
       email: "buyer@stridemarket.local",
       name: "Carlos Comprador",
@@ -101,7 +139,17 @@ async function main() {
   if (sellerUser.sellerProfile) {
     await prisma.listing.upsert({
       where: { slug: "nike-pegasus-40-marathon-beginner" },
-      update: {},
+      update: {
+        sellerId: sellerUser.id,
+        sellerProfileId: sellerUser.sellerProfile.id,
+        categoryId: shoes.id,
+        status: ListingStatus.ACTIVE,
+        moderation: ModerationDecision.APPROVED,
+        moderationNote: null,
+        publishedAt: new Date(),
+        featured: true,
+        trendingScore: 95,
+      },
       create: {
         sellerId: sellerUser.id,
         sellerProfileId: sellerUser.sellerProfile.id,

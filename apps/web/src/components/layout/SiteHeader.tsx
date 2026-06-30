@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FavoriteBorderIcon from "@mui/icons-material/FavoriteBorder";
+import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -80,8 +81,14 @@ export function SiteHeader() {
           <Button component={Link} href="/seller" variant="outlined">
             Meus anúncios
           </Button>
+          <Button component={Link} href="/safety" variant="text">
+            Segurança
+          </Button>
           <IconButton component={Link} href="/favorites" aria-label="Favoritos">
             <FavoriteBorderIcon />
+          </IconButton>
+          <IconButton component={Link} href="/account" aria-label="Minha conta">
+            <AccountCircleIcon />
           </IconButton>
           <Button component={Link} href="/login" variant="outlined">
             Entrar
