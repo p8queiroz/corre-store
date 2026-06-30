@@ -192,6 +192,7 @@ function ProfileForm({ contactOnly = false }: { contactOnly?: boolean }) {
         {update.error && <Alert severity="error">{update.error.message}</Alert>}
         <Box component="form" onSubmit={handleSubmit((data) => update.mutate(data))}>
           <Stack spacing={2}>
+            {contactOnly && <input type="hidden" {...register("name")} />}
             {!contactOnly && (
               <>
                 <TextField label="Nome" fullWidth {...register("name")} error={!!errors.name} helperText={errors.name?.message} />
