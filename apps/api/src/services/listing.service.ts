@@ -95,6 +95,12 @@ export const listingService = {
     if (!listing) {
       throw new AppError(404, "Listing not found", "NOT_FOUND");
     }
+    if (
+      listing.status !== ListingStatus.ACTIVE ||
+      listing.moderation !== ModerationDecision.APPROVED
+    ) {
+      throw new AppError(404, "Listing not found", "NOT_FOUND");
+    }
 
     await prisma.listing.update({
       where: { id: listing.id },
