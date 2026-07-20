@@ -8,7 +8,7 @@ export function SiteFooter() {
     >
       <Container maxWidth="lg">
         <Typography variant="body2">
-          ReRun — venda o que você não usa mais e reinvista no próximo passo.
+          ReRun — venda o que não usa mais e reinvista no próximo passo.
         </Typography>
       </Container>
     </Box>

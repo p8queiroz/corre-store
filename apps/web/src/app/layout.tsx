@@ -10,7 +10,7 @@ export const metadata: Metadata = {
     template: "%s | ReRun",
   },
   description:
-    "Venda o que você não usa mais e reinvista em novas possibilidades.",
+    "Venda o que não usa mais e reinvista em novas possibilidades.",
 };
 
 export default function RootLayout({

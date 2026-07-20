@@ -9,6 +9,7 @@ import {
 import { AppError } from "../middleware/error-handler.js";
 import { enqueueJob } from "./queue.service.js";
 import { JOB_QUEUES } from "@stride/shared";
+import { categorySlugsForQuery, searchTerms } from "./search-intent.service.js";
 
 function slugify(title: string): string {
   return title
@@ -39,10 +40,19 @@ export const listingService = {
       };
     }
     if (input.q) {
+      const terms = searchTerms(input.q);
+      const categorySlugs = categorySlugsForQuery(input.q);
       where.OR = [
-        { title: { contains: input.q, mode: "insensitive" } },
-        { description: { contains: input.q, mode: "insensitive" } },
-        { tags: { has: input.q.toLowerCase() } },
+        ...terms.flatMap((term) => [
+          { title: { contains: term, mode: "insensitive" } },
+          { description: { contains: term, mode: "insensitive" } },
+          { category: { name: { contains: term, mode: "insensitive" } } },
+          { category: { description: { contains: term, mode: "insensitive" } } },
+        ]),
+        { tags: { hasSome: terms.map((term) => term.toLowerCase()) } },
+        ...(categorySlugs.length
+          ? [{ category: { slug: { in: categorySlugs } } }]
+          : []),
       ];
     }
 

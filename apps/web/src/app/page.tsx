@@ -25,7 +25,7 @@ type ListingSummary = {
 };
 
 const heroTitle =
-  "Venda o que você não usa mais e reinvista no próximo passo";
+  "Venda o que não usa mais e reinvista no próximo passo";
 const heroSubtitle =
   "Transforme itens parados em novas possibilidades, com anúncios simples e vendedores reais.";
 

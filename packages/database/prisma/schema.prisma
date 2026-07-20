@@ -378,6 +378,20 @@ model ChatMessage {
   @@index([sessionId])
 }
 
+model AiSearchCache {
+  id              String   @id @default(cuid())
+  normalizedQuery String   @unique
+  originalQuery   String
+  parsedQuery     Json
+  resultCount     Int      @default(0)
+  hitCount        Int      @default(0)
+  source          String   @default("local")
+  createdAt       DateTime @default(now())
+  lastUsedAt      DateTime @updatedAt
+
+  @@index([lastUsedAt])
+}
+
 // ---------------------------------------------------------------------------
 // Background jobs & email queue (educational — mirrors production patterns)
 // ---------------------------------------------------------------------------

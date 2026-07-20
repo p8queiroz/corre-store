@@ -182,7 +182,7 @@ async function main() {
   }
 
   const bannerData = {
-    title: "Venda o que você não usa mais",
+    title: "Venda o que não usa mais",
     subtitle: "Transforme itens parados em novas possibilidades",
     imageUrl: "/placeholders/banner-hero.jpg",
     linkUrl: "/search",
