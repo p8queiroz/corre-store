@@ -3,6 +3,75 @@ export type ParsedSearchIntent = {
   categorySlug?: string;
 };
 
+/** Filler words that should not drive local confidence or keyword search. */
+const STOPWORDS = new Set([
+  "a",
+  "an",
+  "and",
+  "as",
+  "at",
+  "bom",
+  "boa",
+  "boas",
+  "bons",
+  "buscar",
+  "com",
+  "da",
+  "das",
+  "de",
+  "do",
+  "dos",
+  "e",
+  "em",
+  "encontre",
+  "encontrar",
+  "estado",
+  "eu",
+  "find",
+  "for",
+  "from",
+  "good",
+  "in",
+  "item",
+  "itens",
+  "me",
+  "meu",
+  "minha",
+  "my",
+  "na",
+  "nas",
+  "need",
+  "new",
+  "no",
+  "nos",
+  "nova",
+  "novo",
+  "o",
+  "of",
+  "on",
+  "or",
+  "os",
+  "para",
+  "pra",
+  "preciso",
+  "procurando",
+  "quero",
+  "sem",
+  "show",
+  "some",
+  "something",
+  "the",
+  "to",
+  "um",
+  "uma",
+  "umas",
+  "uns",
+  "used",
+  "want",
+  "with",
+  "without",
+]);
+
 export function normalizeSearchQuery(value: string): string {
   return value
     .normalize("NFD")
@@ -58,6 +127,13 @@ export function searchTerms(value: string): string[] {
   return Array.from(terms).filter(Boolean);
 }
 
+/** Content tokens only — used for local intent + confidence gating. */
+export function meaningfulTerms(value: string): string[] {
+  return normalizeSearchQuery(value)
+    .split(/[^a-z0-9]+/g)
+    .filter((term) => term.length >= 2 && !STOPWORDS.has(term));
+}
+
 export function categorySlugsForQuery(value: string): string[] {
   return Array.from(
     new Set(
@@ -78,8 +154,32 @@ export function normalizeCategoryHint(value?: string) {
 }
 
 export function parseLocalSearchIntent(query: string): ParsedSearchIntent {
+  const keywords = meaningfulTerms(query);
   return {
-    keywords: searchTerms(query),
+    keywords: keywords.length ? keywords : searchTerms(query).slice(0, 5),
     categorySlug: categorySlugsForQuery(query)[0],
   };
+}
+
+/**
+ * True when local aliases/tokens are enough — skip OpenAI.
+ * Long/vague NL sentences without a category signal stay low-confidence.
+ */
+export function isLocalIntentConfident(
+  intent: ParsedSearchIntent,
+  query: string
+): boolean {
+  const terms = meaningfulTerms(query);
+  if (!terms.length) return false;
+
+  if (intent.categorySlug && terms.length <= 6) return true;
+
+  // Compact product-like queries with little filler (e.g. "garmin fenix 7")
+  if (terms.length >= 1 && terms.length <= 3) {
+    const rawWords = normalizeSearchQuery(query).split(/\s+/).filter(Boolean);
+    const stopwordCount = rawWords.length - terms.length;
+    return stopwordCount <= 1;
+  }
+
+  return false;
 }

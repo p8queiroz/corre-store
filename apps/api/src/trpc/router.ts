@@ -6,7 +6,6 @@ import {
   contactSellerSchema,
   createListingSchema,
   listingStatusActionSchema,
-  naturalLanguageSearchSchema,
   profileSchema,
   reportSchema,
   updateListingSchema,
@@ -161,10 +160,6 @@ export const appRouter = router({
     assistListing: roleProcedure("SELLER")
       .input(aiListingAssistSchema)
       .mutation(({ input }) => aiService.assistListing(input)),
-
-    naturalLanguageSearch: publicProcedure
-      .input(naturalLanguageSearchSchema)
-      .mutation(({ input }) => aiService.naturalLanguageSearch(input)),
 
     chat: publicProcedure
       .input(

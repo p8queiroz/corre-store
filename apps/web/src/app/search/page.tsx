@@ -2,7 +2,7 @@
 
 import { useSearchParams } from "next/navigation";
 import { useQuery } from "@apollo/client";
-import { Container, Grid, Typography, Box, Chip } from "@mui/material";
+import { Container, Grid, Typography, Box } from "@mui/material";
 import { SEARCH_LISTINGS_QUERY } from "@/graphql/queries";
 import { ListingCard } from "@/components/listings/ListingCard";
 
@@ -21,13 +21,13 @@ export default function SearchPage() {
   const params = useSearchParams();
   const q = params.get("q") ?? undefined;
   const categorySlug = params.get("category") ?? undefined;
-  const ai = params.get("ai");
 
-  const { data, loading } = useQuery(SEARCH_LISTINGS_QUERY, {
+  const graphql = useQuery(SEARCH_LISTINGS_QUERY, {
     variables: { q, categorySlug, page: 1, limit: 24 },
   });
 
-  const results = data?.searchListings as
+  const loading = graphql.loading;
+  const results = graphql.data?.searchListings as
     | { total: number; items: ListingSummary[] }
     | undefined;
 
@@ -36,9 +36,6 @@ export default function SearchPage() {
       <Typography variant="h4" fontWeight={800} gutterBottom>
         Resultados da busca
       </Typography>
-      {ai && (
-        <Chip label="Resultados com apoio de IA" color="secondary" sx={{ mb: 2 }} />
-      )}
       {loading && <Typography>Carregando...</Typography>}
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
         {results?.total ?? 0} anúncios encontrados

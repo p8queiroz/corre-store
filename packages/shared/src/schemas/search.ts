@@ -14,13 +14,6 @@ export const searchListingsSchema = z.object({
     .default("newest"),
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(48).default(24),
-  /** Natural language query — triggers semantic search via worker embeddings */
-  semantic: z.boolean().optional().default(false),
-});
-
-export const naturalLanguageSearchSchema = z.object({
-  query: z.string().min(3).max(500),
-  limit: z.coerce.number().int().min(1).max(24).default(12),
 });
 
 export type SearchListingsInput = z.infer<typeof searchListingsSchema>;

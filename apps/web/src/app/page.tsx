@@ -10,7 +10,7 @@ import Link from "next/link";
 import { ListingCard } from "@/components/listings/ListingCard";
 import { getApolloClient } from "@/lib/apollo-server";
 import { HOMEPAGE_QUERY } from "@/graphql/queries";
-import { AiSearchHero } from "@/components/home/AiSearchHero";
+import { SearchHero } from "@/components/home/SearchHero";
 
 type Category = { id: string; slug: string; name: string };
 type ListingSummary = {
@@ -98,7 +98,7 @@ export default async function HomePage() {
               </Stack>
             </Grid>
             <Grid size={{ xs: 12, md: 5 }}>
-              <AiSearchHero />
+              <SearchHero />
             </Grid>
           </Grid>
         </Container>

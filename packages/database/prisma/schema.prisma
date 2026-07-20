@@ -226,7 +226,7 @@ model Listing {
   publishedAt     DateTime?
   featured        Boolean          @default(false)
   trendingScore   Float            @default(0)
-  // AI-generated metadata (embedding stored for semantic search)
+  // AI-generated metadata for future similarity and duplicate-detection features.
   embedding       Float[]          @default([])
   aiSummary       String?
   aiModerationResult Json?

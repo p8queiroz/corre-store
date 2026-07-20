@@ -37,7 +37,7 @@ This is the single documentation guide for the ReRun marketplace app. It replace
 | Pattern             | Source                      | Implementation                      |
 | ------------------- | --------------------------- | ----------------------------------- |
 | Visual listing grid | OLX / Mercado Livre         | `ListingCard`, homepage sections    |
-| Hero + search       | Marketplace homepages       | AI search hero + keyword bar        |
+| Hero + search       | Marketplace homepages       | Standard search hero + keyword bar  |
 | Trust & conversion  | Airbnb-style listing detail | Price prominence, seller block, CTA |
 | Mobile-first        | Modern ecommerce            | MUI responsive grid, sticky header  |
 
@@ -464,7 +464,7 @@ Marketplace core:
 | `priceCents`    | Integer money — never float currency                |
 | `status`        | Lifecycle: draft → pending → active → sold          |
 | `moderation`    | AI + admin gate                                     |
-| `embedding`     | `Float[]` for semantic search (upgrade to pgvector) |
+| `embedding`     | `Float[]` for future similarity and duplicate checks |
 | `trendingScore` | Denormalized rank — updated by worker               |
 
 
@@ -602,7 +602,7 @@ Add GraphQL mutation `toggleFavorite` and compare ergonomics vs existing tRPC im
 
 ## 7. AI Features
 
-ReRun demonstrates **five AI integration patterns** common in marketplaces.
+ReRun keeps buyer search conventional and reserves AI for flows where it has clearer product value.
 
 ### 1. AI Listing Assistant
 
@@ -620,31 +620,24 @@ ReRun demonstrates **five AI integration patterns** common in marketplaces.
 
 Without `OPENAI_API_KEY`, API returns mock text — UI still works for learning.
 
-### 2. AI Product Discovery
+### 2. Buyer Search: Intentionally Non-AI
 
-**Natural language search** on homepage hero:
+Buyer search uses the standard listing search endpoint:
 
 ```
-"Show me lightweight running shoes for marathon beginners"
+/search?q=mochila%20quase%20nova
 ```
 
 #### Pipeline
 
 ```mermaid
 flowchart LR
-  A[User query] --> B[GPT keyword extraction]
-  B --> C[SQL keyword search]
-  D[Worker embedding] --> E[Future: vector similarity]
-  C --> F[Search results page]
+  A[User query] --> B[GraphQL searchListings]
+  B --> C[SQL keyword/category/tag filters]
+  C --> D[Search results page]
 ```
 
-
-
-1. **Sync:** GPT extracts `keywords` + optional `categoryHint`
-2. **Search:** `listingService.search({ q: keywords.join(' ') })`
-3. **Async:** Worker stores embeddings on listings for semantic upgrade
-
-**Upgrade:** Compare query embedding to `Listing.embedding` with cosine similarity (pgvector).
+This avoids spending LLM budget on high-volume search when the AI layer does not materially improve results over the existing keyword/category/tag matching.
 
 ### 3. AI Moderation
 
@@ -694,6 +687,7 @@ Implement in `apps/web/src/app/dashboard` + worker `trending.processor.ts` patte
 ### Cost & safety controls
 
 - Use `gpt-4o-mini` for high-volume tasks
+- Keep high-volume buyer search off LLM calls unless ranking quality clearly improves
 - Cache embeddings — don't re-embed unchanged listings
 - Log moderation decisions in `ModerationLog`
 - Rate-limit AI endpoints per user (extend `RATE_LIMITS`)
@@ -710,7 +704,7 @@ Restart **both** API and worker after setting.
 
 1. Get listing assistant working with real API key
 2. Run seed listing through moderation worker — inspect `ModerationLog`
-3. Add pgvector semantic search
+3. Evaluate vector-based ranking only if it demonstrably improves search quality
 4. Wire chatbot to real search tool
 
 ---
@@ -849,7 +843,7 @@ Same schema validates on API — **no drift** between client and server.
 | -------------- | ------------------------------- |
 | `SiteHeader`   | Search bar, nav, sell CTA       |
 | `ListingCard`  | Grid tile with price + location |
-| `AiSearchHero` | NL discovery entry point        |
+| `SearchHero`   | Homepage standard search entry  |
 
 
 ### Seller listing management
