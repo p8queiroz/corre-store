@@ -54,6 +54,13 @@ enum ModerationDecision {
   FLAGGED
 }
 
+enum StravaConnectionStatus {
+  NOT_CONNECTED
+  VERIFIED
+  DISCONNECTED
+  ERROR
+}
+
 enum InquiryStatus {
   OPEN
   REPLIED
@@ -171,6 +178,12 @@ model SellerProfile {
   isVerified      Boolean   @default(false)
   moderationNote  String?
   approvedAt      DateTime?
+  stravaAthleteId String?   @unique
+  stravaDisplayName String?
+  stravaProfileUrl String?
+  stravaVerifiedAt DateTime?
+  stravaScopes    String[]  @default([])
+  stravaConnectionStatus StravaConnectionStatus @default(NOT_CONNECTED)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -226,7 +239,7 @@ model Listing {
   publishedAt     DateTime?
   featured        Boolean          @default(false)
   trendingScore   Float            @default(0)
-  // AI-generated metadata for future similarity and duplicate-detection features.
+  // AI-generated metadata — embedding powers similar listings on detail pages
   embedding       Float[]          @default([])
   aiSummary       String?
   aiModerationResult Json?

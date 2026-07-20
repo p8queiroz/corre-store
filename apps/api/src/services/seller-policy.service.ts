@@ -5,7 +5,7 @@ type PublishUser = {
   role: UserRole;
   status: UserStatus;
   emailVerifiedAt: Date | null;
-  whatsappConfirmedAt: Date | null;
+  whatsappConfirmedAt?: Date | null;
 };
 
 type PublishSellerProfile = Pick<
@@ -21,7 +21,6 @@ export function canPublishListing(
     user.role === UserRole.SELLER &&
     user.status === UserStatus.ACTIVE &&
     Boolean(user.emailVerifiedAt) &&
-    Boolean(user.whatsappConfirmedAt) &&
     sellerProfile?.stravaConnectionStatus === StravaConnectionStatus.VERIFIED &&
     Boolean(sellerProfile.stravaVerifiedAt)
   );

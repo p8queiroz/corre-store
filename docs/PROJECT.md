@@ -212,6 +212,16 @@ Optional:
 OPENAI_API_KEY="sk-..."
 ```
 
+For seller Strava verification, create a Strava API application and set:
+
+```
+STRAVA_CLIENT_ID="<client-id>"
+STRAVA_CLIENT_SECRET="<client-secret>"
+STRAVA_REDIRECT_URI="http://localhost:4000/integrations/strava/callback"
+```
+
+The Strava secret and OAuth token exchange stay in the API. ReRun stores the authenticated athlete ID and safe display metadata only; Strava is not used as the application login identity.
+
 ### Step 2 — Install dependencies
 
 From repository root:
@@ -494,7 +504,7 @@ npm run db:migrate
 `prisma/seed.ts` creates:
 
 - 1 admin (not registrable via UI)
-- 1 seller with several ACTIVE listings (shoes, hydration, wearable)
+- 1 seller with curated featured listings plus **50** generated running-gear listings
 - Demo `embedding` vectors so similar listings work without OpenAI
 - 1 buyer
 - Categories for running niche

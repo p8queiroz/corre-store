@@ -1,13 +1,16 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Alert,
   Box,
   Button,
+  Chip,
   Container,
+  Divider,
   MenuItem,
   Paper,
   Stack,
@@ -22,6 +25,7 @@ import { trpc } from "@/lib/trpc";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import StorefrontIcon from "@mui/icons-material/Storefront";
+import VerifiedIcon from "@mui/icons-material/Verified";
 import { useEffect, useState } from "react";
 import type { z } from "zod";
 
@@ -43,7 +47,104 @@ type SessionUser = {
   role: "USER" | "SELLER" | "ADMIN";
 };
 
+function SellerVerificationCard() {
+  const verification = trpc.account.sellerVerification.useQuery();
+  const utils = trpc.useUtils();
+  const [disconnectError, setDisconnectError] = useState<string | null>(null);
+  const data = verification.data;
+
+  async function disconnectStrava() {
+    setDisconnectError(null);
+    const res = await fetch(`${apiUrl}/integrations/strava/disconnect`, {
+      method: "POST",
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const body = (await res.json()) as { error?: string };
+      setDisconnectError(body.error ?? "Não foi possível desconectar o Strava.");
+      return;
+    }
+    await utils.account.sellerVerification.invalidate();
+  }
+
+  return (
+    <Paper sx={{ p: 3 }}>
+      <Stack spacing={2}>
+        <Stack direction="row" gap={1} alignItems="center" flexWrap="wrap">
+          <Typography variant="h6" fontWeight={800}>
+            Verificação de vendedor
+          </Typography>
+          {data?.stravaVerified && (
+            <Chip
+              icon={<VerifiedIcon />}
+              label="Strava Verified"
+              color="success"
+              variant="outlined"
+            />
+          )}
+        </Stack>
+        <Typography color="text.secondary">
+          Para enviar anúncios para revisão, conecte uma conta Strava autenticada. Isso confirma controle da conta Strava, sem indicar endosso ou garantia de segurança.
+        </Typography>
+        {verification.isLoading && <Typography>Carregando verificação...</Typography>}
+        {verification.error && <Alert severity="error">{verification.error.message}</Alert>}
+        {disconnectError && <Alert severity="error">{disconnectError}</Alert>}
+        {data && (
+          <>
+            <Stack direction="row" gap={1} flexWrap="wrap">
+              <Chip
+                label={data.emailVerified ? "Email verificado" : "Verifique seu email"}
+                color={data.emailVerified ? "success" : "default"}
+                variant={data.emailVerified ? "filled" : "outlined"}
+              />
+              <Chip
+                label={data.whatsappVerified ? "WhatsApp informado" : "WhatsApp opcional"}
+                color={data.whatsappVerified ? "success" : "default"}
+                variant={data.whatsappVerified ? "filled" : "outlined"}
+              />
+              <Chip
+                label={data.stravaVerified ? "Strava conectado" : "Strava pendente"}
+                color={data.stravaVerified ? "success" : "default"}
+                variant={data.stravaVerified ? "filled" : "outlined"}
+              />
+            </Stack>
+            {data.stravaVerified ? (
+              <Stack spacing={1} alignItems="flex-start">
+                <Typography variant="body2" color="text.secondary">
+                  Conectado como {data.stravaDisplayName ?? "atleta Strava"}.
+                </Typography>
+                <Button
+                  variant="outlined"
+                  color="error"
+                  onClick={() => void disconnectStrava()}
+                >
+                  Desconectar Strava
+                </Button>
+              </Stack>
+            ) : (
+              <Button
+                href={`${apiUrl}/integrations/strava/connect`}
+                variant="contained"
+                startIcon={<VerifiedIcon />}
+                sx={{ alignSelf: "flex-start" }}
+              >
+                Conectar Strava
+              </Button>
+            )}
+            {!data.canPublishListings && (
+              <Alert severity="info">
+                Complete os itens pendentes para enviar anúncios para revisão.
+              </Alert>
+            )}
+          </>
+        )}
+      </Stack>
+    </Paper>
+  );
+}
+
 export default function SellPage() {
+  const searchParams = useSearchParams();
   const createListing = trpc.listings.create.useMutation();
   const aiAssist = trpc.ai.assistListing.useMutation();
   const [sessionUser, setSessionUser] = useState<SessionUser | null>(null);
@@ -53,6 +154,9 @@ export default function SellPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isBecomingSeller, setIsBecomingSeller] = useState(false);
+  const verification = trpc.account.sellerVerification.useQuery(undefined, {
+    enabled: sessionUser?.role === "SELLER" || sessionUser?.role === "ADMIN",
+  });
 
   const {
     register,
@@ -219,13 +323,29 @@ export default function SellPage() {
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Paper sx={{ p: 4 }}>
+      <Stack spacing={3}>
+        {searchParams.get("strava") === "connected" && (
+          <Alert severity="success">Strava conectado com sucesso.</Alert>
+        )}
+        {searchParams.get("strava") === "denied" && (
+          <Alert severity="warning">A autorização do Strava foi cancelada.</Alert>
+        )}
+        {searchParams.get("strava") === "error" && (
+          <Alert severity="error">Não foi possível conectar o Strava. Tente novamente.</Alert>
+        )}
+        <SellerVerificationCard />
+        <Paper sx={{ p: 4 }}>
         <Typography variant="h4" fontWeight={800} gutterBottom>
           Criar anúncio
         </Typography>
         <Typography color="text.secondary" sx={{ mb: 3 }}>
           Seus anúncios passam por IA e moderação antes de ficarem públicos.
         </Typography>
+        {!verification.data?.canPublishListings && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            Complete a verificação de vendedor antes de enviar um anúncio para revisão.
+          </Alert>
+        )}
         {successMessage && (
           <Alert severity="success" sx={{ mb: 2 }}>
             {successMessage}
@@ -242,11 +362,13 @@ export default function SellPage() {
           </Alert>
         )}
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+          <Stack spacing={2} divider={<Divider flexItem />}>
+          <Box>
           <Button
             variant="outlined"
             startIcon={<AutoAwesomeIcon />}
             onClick={() => void onAiAssist()}
-            disabled={aiAssist.isPending}
+            disabled={aiAssist.isPending || !verification.data?.canPublishListings}
             sx={{ mb: 2 }}
           >
             Assistente de anúncio com IA
@@ -269,11 +391,13 @@ export default function SellPage() {
             error={!!errors.description}
             helperText={errors.description?.message}
           />
+          </Box>
+          <Box>
           <Button
             component="label"
             variant="outlined"
             startIcon={<CloudUploadIcon />}
-            sx={{ mt: 2 }}
+            disabled={!verification.data?.canPublishListings}
           >
             Adicionar imagens do produto
             <input
@@ -323,17 +447,19 @@ export default function SellPage() {
           />
           <TextField fullWidth label="Cidade" margin="normal" {...register("city")} />
           <TextField fullWidth label="Estado" margin="normal" {...register("state")} />
+          </Box>
           <Button
             type="submit"
             variant="contained"
             size="large"
-            sx={{ mt: 3 }}
-            disabled={createListing.isPending || isUploading}
+            disabled={createListing.isPending || isUploading || !verification.data?.canPublishListings}
           >
             {isUploading ? "Enviando imagens..." : "Enviar para revisão"}
           </Button>
+          </Stack>
         </Box>
       </Paper>
+      </Stack>
     </Container>
   );
 }

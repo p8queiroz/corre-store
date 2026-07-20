@@ -10,6 +10,7 @@ import { AppError } from "../middleware/error-handler.js";
 import { enqueueJob } from "./queue.service.js";
 import { JOB_QUEUES } from "@stride/shared";
 import { categorySlugsForQuery, searchTerms } from "./search-intent.service.js";
+import { canPublishListing } from "./seller-policy.service.js";
 import { cosineSimilarity } from "../lib/vector.js";
 
 function slugify(title: string): string {
@@ -18,6 +19,32 @@ function slugify(title: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/(^-|-$)/g, "")
     .slice(0, 80);
+}
+
+async function assertCanSubmitListingForReview(userId: string) {
+  const user = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
+    select: {
+      role: true,
+      status: true,
+      emailVerifiedAt: true,
+      whatsappConfirmedAt: true,
+      sellerProfile: {
+        select: {
+          stravaConnectionStatus: true,
+          stravaVerifiedAt: true,
+        },
+      },
+    },
+  });
+
+  if (!canPublishListing(user, user.sellerProfile)) {
+    throw new AppError(
+      403,
+      "Connect and verify your Strava account before publishing a listing.",
+      "SELLER_STRAVA_VERIFICATION_REQUIRED"
+    );
+  }
 }
 
 const publicListingCardInclude = {
@@ -186,6 +213,8 @@ export const listingService = {
   },
 
   async create(sellerId: string, raw: CreateListingInput) {
+    await assertCanSubmitListingForReview(sellerId);
+
     const data = createListingSchema.parse(raw);
     const { imageUrls, ...listingData } = data;
     let slug = slugify(data.title);
@@ -240,6 +269,9 @@ export const listingService = {
     status: ListingStatus
   ) {
     const existing = await this.getMine(userId, role, listingId);
+    if (status === ListingStatus.ACTIVE && existing.sellerId === userId) {
+      await assertCanSubmitListingForReview(userId);
+    }
     if (status === ListingStatus.ACTIVE && existing.moderation !== ModerationDecision.APPROVED) {
       throw new AppError(400, "Only approved listings can be reactivated", "NOT_APPROVED");
     }
@@ -322,6 +354,10 @@ export const listingService = {
     raw: UpdateListingInput
   ) {
     const existing = await this.getMine(userId, role, listingId);
+    if (existing.sellerId === userId) {
+      await assertCanSubmitListingForReview(userId);
+    }
+
     const data = updateListingSchema.parse(raw);
     const { imageUrls, ...listingData } = data;
 
@@ -442,6 +478,7 @@ export const listingService = {
         activeListings,
         whatsappConfirmed: Boolean(seller.whatsappConfirmedAt),
         profileVerified: seller.sellerProfile.isVerified,
+        stravaVerified: Boolean(seller.sellerProfile.stravaVerifiedAt),
       },
       listings,
     };

@@ -140,7 +140,7 @@ export const stravaService = {
   },
 
   async disconnect(userId: string) {
-    await prisma.sellerProfile.update({
+    await prisma.sellerProfile.updateMany({
       where: { userId },
       data: {
         stravaAthleteId: null,

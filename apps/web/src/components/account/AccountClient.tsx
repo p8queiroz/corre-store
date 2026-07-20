@@ -313,6 +313,14 @@ function OverviewPanel() {
           <Stack direction="row" gap={1} flexWrap="wrap">
             <Chip label={account.data?.role ?? "USER"} />
             {account.data?.whatsappConfirmedAt && <Chip label="WhatsApp confirmado" color="success" />}
+            {account.data?.sellerProfile?.stravaVerifiedAt && (
+              <Chip
+                label="Strava Verified"
+                color="success"
+                variant="outlined"
+                title="Você conectou uma conta Strava autenticada."
+              />
+            )}
             <Chip label={account.data?.status ?? "PENDING"} variant="outlined" />
           </Stack>
           <Button component={Link} href="/sell" variant="contained" startIcon={<StorefrontIcon />} sx={{ alignSelf: "flex-start" }}>

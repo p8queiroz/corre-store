@@ -42,6 +42,14 @@ export default function PublicSellerPage() {
                   <Chip label={`${data.trust.activeListings} ativos`} />
                   {data.trust.whatsappConfirmed && <Chip label="WhatsApp confirmado" color="success" />}
                   {data.trust.profileVerified && <Chip label="Perfil verificado" color="primary" />}
+                  {data.trust.stravaVerified && (
+                    <Chip
+                      label="Strava Verified"
+                      color="success"
+                      variant="outlined"
+                      title="Este vendedor conectou uma conta Strava autenticada."
+                    />
+                  )}
                 </Stack>
               </Box>
               <ReportAction sellerId={data.seller.id} label="Denunciar vendedor" />
