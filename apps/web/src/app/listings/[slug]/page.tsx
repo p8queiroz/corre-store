@@ -12,6 +12,7 @@ import { getApolloClient } from "@/lib/apollo-server";
 import { LISTING_DETAIL_QUERY } from "@/graphql/queries";
 import { notFound } from "next/navigation";
 import { ContactSellerButton } from "@/components/listings/ContactSellerButton";
+import { ListingCard } from "@/components/listings/ListingCard";
 import { resolveMediaUrl } from "@/lib/media";
 import { ReportAction } from "@/components/safety/ReportAction";
 
@@ -37,6 +38,17 @@ type ListingDetail = {
   seller: { id: string; name: string; avatarUrl?: string | null };
 };
 
+type SimilarListing = {
+  id: string;
+  slug: string;
+  title: string;
+  priceCents: number;
+  city: string;
+  state: string;
+  images?: Array<{ thumbnailUrl?: string | null; url?: string | null }>;
+  category?: { name?: string | null };
+};
+
 function formatPrice(cents: number): string {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
@@ -53,11 +65,12 @@ export default async function ListingDetailPage({
   const client = getApolloClient();
   const { data } = await client.query({
     query: LISTING_DETAIL_QUERY,
-    variables: { slug },
+    variables: { slug, similarLimit: 4 },
   });
 
   const listing = data?.listing as ListingDetail | undefined;
   if (!listing) notFound();
+  const similar = (data?.similarListings ?? []) as SimilarListing[];
   const heroImageUrl = resolveMediaUrl(listing.images?.[0]?.url);
 
   return (
@@ -112,6 +125,34 @@ export default async function ListingDetailPage({
           </Stack>
         </Grid>
       </Grid>
+
+      {similar.length > 0 && (
+        <Box sx={{ mt: 6 }}>
+          <Typography variant="h5" fontWeight={800} gutterBottom>
+            Itens semelhantes
+          </Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            Sugestões com base na similaridade de conteúdo do anúncio
+          </Typography>
+          <Grid container spacing={2}>
+            {similar.map((item) => (
+              <Grid key={item.id} size={{ xs: 12, sm: 6, md: 3 }}>
+                <ListingCard
+                  slug={item.slug}
+                  title={item.title}
+                  priceCents={item.priceCents}
+                  city={item.city}
+                  state={item.state}
+                  imageUrl={
+                    item.images?.[0]?.thumbnailUrl ?? item.images?.[0]?.url ?? undefined
+                  }
+                  categoryName={item.category?.name ?? undefined}
+                />
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
     </Container>
   );
 }

@@ -18,6 +18,7 @@ import { createContext } from "./context.js";
 import { env } from "./config/env.js";
 import { sessionMiddleware } from "./middleware/session.js";
 import { authRouter } from "./routes/auth.routes.js";
+import { stravaRouter } from "./routes/strava.routes.js";
 import { uploadRouter } from "./routes/upload.routes.js";
 import { schema } from "./graphql/schema.js";
 import { appRouter } from "./trpc/router.js";
@@ -44,6 +45,7 @@ app.get("/health", (_req, res) => {
 });
 
 app.use("/auth", authRouter);
+app.use("/integrations/strava", stravaRouter);
 app.use("/uploads", uploadRouter);
 app.use("/uploads", express.static(env.STORAGE_LOCAL_PATH));
 

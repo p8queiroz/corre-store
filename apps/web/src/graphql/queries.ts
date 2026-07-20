@@ -94,7 +94,7 @@ export const SEARCH_LISTINGS_QUERY = gql`
 `;
 
 export const LISTING_DETAIL_QUERY = gql`
-  query ListingDetail($slug: String!) {
+  query ListingDetail($slug: String!, $similarLimit: Int = 4) {
     listing(slug: $slug) {
       id
       title
@@ -120,6 +120,21 @@ export const LISTING_DETAIL_QUERY = gql`
         id
         name
         avatarUrl
+      }
+    }
+    similarListings(slug: $slug, limit: $similarLimit) {
+      id
+      title
+      slug
+      priceCents
+      city
+      state
+      images {
+        url
+        thumbnailUrl
+      }
+      category {
+        name
       }
     }
   }

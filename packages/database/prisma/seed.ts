@@ -135,50 +135,141 @@ async function main() {
   const shoes = await prisma.category.findUniqueOrThrow({
     where: { slug: "running-shoes" },
   });
+  const hydration = await prisma.category.findUniqueOrThrow({
+    where: { slug: "hydration" },
+  });
+  const wearables = await prisma.category.findUniqueOrThrow({
+    where: { slug: "wearables" },
+  });
+
+  /** Compact demo vectors so "Itens semelhantes" works without OPENAI_API_KEY. */
+  function demoEmbedding(categorySlot: number, variant: number): number[] {
+    const dim = 32;
+    const vector = Array.from({ length: dim }, (_, i) => {
+      if (i === categorySlot) return 1;
+      if (i === (categorySlot + 1) % dim) return 0.35 + variant * 0.08;
+      return Math.sin((variant + 1) * (i + 1) * 0.13) * 0.08;
+    });
+    const norm = Math.hypot(...vector) || 1;
+    return vector.map((value) => value / norm);
+  }
 
   if (sellerUser.sellerProfile) {
-    await prisma.listing.upsert({
-      where: { slug: "nike-pegasus-40-marathon-beginner" },
-      update: {
-        sellerId: sellerUser.id,
-        sellerProfileId: sellerUser.sellerProfile.id,
-        categoryId: shoes.id,
-        status: ListingStatus.ACTIVE,
-        moderation: ModerationDecision.APPROVED,
-        moderationNote: null,
-        publishedAt: new Date(),
-        featured: true,
-        trendingScore: 95,
-      },
-      create: {
-        sellerId: sellerUser.id,
-        sellerProfileId: sellerUser.sellerProfile.id,
+    const sampleListings = [
+      {
+        slug: "nike-pegasus-40-marathon-beginner",
         categoryId: shoes.id,
         title: "Nike Pegasus 40 em bom estado",
-        slug: "nike-pegasus-40-marathon-beginner",
         description:
           "Tênis leve, com cerca de 200km de uso. Boa opção para quem quer começar sem comprar novo.",
         priceCents: 44900,
         condition: ListingCondition.GOOD,
-        city: "São Paulo",
-        state: "SP",
         tags: ["nike", "corrida", "iniciante", "seminovo"],
-        status: ListingStatus.ACTIVE,
-        moderation: ModerationDecision.APPROVED,
-        publishedAt: new Date(),
         featured: true,
         trendingScore: 95,
-        images: {
-          create: [
-            {
-              url: "/placeholders/shoe-1.jpg",
-              thumbnailUrl: "/placeholders/shoe-1-thumb.jpg",
-              sortOrder: 0,
-            },
-          ],
-        },
+        image: "/placeholders/shoe-1.jpg",
+        thumb: "/placeholders/shoe-1-thumb.jpg",
+        embedding: demoEmbedding(0, 0),
       },
-    });
+      {
+        slug: "asics-gel-nimbus-25-leve",
+        categoryId: shoes.id,
+        title: "Asics Gel-Nimbus 25 leve",
+        description:
+          "Amortecimento macio para treinos longos. Pouco uso, ideal para quem busca conforto sem comprar novo.",
+        priceCents: 52000,
+        condition: ListingCondition.LIKE_NEW,
+        tags: ["asics", "corrida", "amortecimento", "seminovo"],
+        featured: true,
+        trendingScore: 88,
+        image: "/placeholders/shoe-1.jpg",
+        thumb: "/placeholders/shoe-1-thumb.jpg",
+        embedding: demoEmbedding(0, 1),
+      },
+      {
+        slug: "garrafa-hidratacao-soft-flask",
+        categoryId: hydration.id,
+        title: "Soft flask de hidratação 500ml",
+        description:
+          "Garrafa flexível para colete ou cinto. Quase nova, pronta para a próxima prova.",
+        priceCents: 8900,
+        condition: ListingCondition.LIKE_NEW,
+        tags: ["hidratacao", "garrafa", "trail"],
+        featured: false,
+        trendingScore: 70,
+        image: "/placeholders/shoe-1.jpg",
+        thumb: "/placeholders/shoe-1-thumb.jpg",
+        embedding: demoEmbedding(1, 0),
+      },
+      {
+        slug: "garmin-forerunner-255",
+        categoryId: wearables.id,
+        title: "Garmin Forerunner 255",
+        description:
+          "Relógio com GPS e métricas de corrida. Vendido porque migrei para outro modelo.",
+        priceCents: 129000,
+        condition: ListingCondition.GOOD,
+        tags: ["garmin", "relogio", "gps"],
+        featured: true,
+        trendingScore: 82,
+        image: "/placeholders/shoe-1.jpg",
+        thumb: "/placeholders/shoe-1-thumb.jpg",
+        embedding: demoEmbedding(2, 0),
+      },
+    ] as const;
+
+    for (const sample of sampleListings) {
+      await prisma.listing.upsert({
+        where: { slug: sample.slug },
+        update: {
+          sellerId: sellerUser.id,
+          sellerProfileId: sellerUser.sellerProfile.id,
+          categoryId: sample.categoryId,
+          title: sample.title,
+          description: sample.description,
+          priceCents: sample.priceCents,
+          condition: sample.condition,
+          tags: [...sample.tags],
+          status: ListingStatus.ACTIVE,
+          moderation: ModerationDecision.APPROVED,
+          moderationNote: null,
+          publishedAt: new Date(),
+          featured: sample.featured,
+          trendingScore: sample.trendingScore,
+          embedding: [...sample.embedding],
+          aiSummary: sample.description.slice(0, 200),
+        },
+        create: {
+          sellerId: sellerUser.id,
+          sellerProfileId: sellerUser.sellerProfile.id,
+          categoryId: sample.categoryId,
+          title: sample.title,
+          slug: sample.slug,
+          description: sample.description,
+          priceCents: sample.priceCents,
+          condition: sample.condition,
+          city: "São Paulo",
+          state: "SP",
+          tags: [...sample.tags],
+          status: ListingStatus.ACTIVE,
+          moderation: ModerationDecision.APPROVED,
+          publishedAt: new Date(),
+          featured: sample.featured,
+          trendingScore: sample.trendingScore,
+          embedding: [...sample.embedding],
+          aiSummary: sample.description.slice(0, 200),
+          images: {
+            create: [
+              {
+                url: sample.image,
+                thumbnailUrl: sample.thumb,
+                sortOrder: 0,
+              },
+            ],
+          },
+        },
+      });
+    }
   }
 
   const bannerData = {

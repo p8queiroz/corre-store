@@ -64,6 +64,7 @@ GraphQL is used for public marketplace reads:
 health returns ok.
 categories returns marketplace categories.
 listing(slug) returns a listing detail.
+similarListings(slug, limit) returns related ACTIVE/APPROVED listings ranked by embedding cosine similarity (same-category recency fallback when vectors are missing).
 searchListings returns paginated active approved listings with filters.
 featuredListings returns active approved featured listings.
 trendingListings returns active approved listings ordered by trending score.
@@ -71,7 +72,7 @@ homepageBanners returns active homepage banners.
 
 tRPC is used for authenticated and typed workflows:
 
-listings.search, listings.bySlug, listings.create, listings.listMine, listings.getMine, listings.updateMine.
+listings.search, listings.bySlug, listings.similar, listings.create, listings.listMine, listings.getMine, listings.updateMine.
 ai.assistListing, ai.naturalLanguageSearch, ai.chat.
 favorites.list and favorites.toggle.
 admin.dashboard, admin.moderationQueue, admin.listings, admin.approveListing, admin.rejectListing, admin.setListingFeatured, admin.users, admin.promoteUser, admin.setUserStatus, admin.banners, admin.createBanner, admin.updateBanner, admin.reports, admin.resolveReport, admin.jobs.
@@ -112,7 +113,7 @@ The homepage at / shows a marketplace hero, AI search component, categories, fea
 
 /category/[slug] shows category-specific listing browsing.
 
-/listings/[slug] shows listing detail with image, category, title, price, city, state, condition, tags, contact seller action, description, and seller name.
+/listings/[slug] shows listing detail with image, category, title, price, city, state, condition, tags, contact seller action, description, seller name, and an **Itens semelhantes** section powered by embedding cosine similarity.
 
 /login and /register provide authentication screens.
 
@@ -170,7 +171,7 @@ AI chat creates or reuses a chat session and stores user and assistant messages.
 
 AI moderation runs in the worker. It calls OpenAI moderation on listing title and description, writes a ModerationLog, and sets listing moderation to FLAGGED when flagged or leaves it PENDING with a note when it passes automated moderation. Admin review remains the final source of truth.
 
-AI embeddings run in the worker. It uses text-embedding-3-small over listing title, description, and tags, then stores the embedding and a short AI summary on the listing.
+AI embeddings run in the worker. It uses text-embedding-3-small over listing title, description, and tags, then stores the embedding and a short AI summary on the listing. Those vectors power similar listings on detail pages via in-process cosine similarity (`listingService.findSimilar` / GraphQL `similarListings`). Seed data includes demo embeddings so the feature works without an OpenAI key.
 
 Worker features
 

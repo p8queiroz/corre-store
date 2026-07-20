@@ -8,6 +8,11 @@ export interface SessionData {
   userId: string;
   role: AppRole;
   email: string;
+  stravaOAuthState?: {
+    value: string;
+    userId: string;
+    expiresAt: number;
+  };
 }
 
 export interface SessionExtensions {

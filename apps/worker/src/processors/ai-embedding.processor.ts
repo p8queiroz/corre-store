@@ -3,7 +3,8 @@ import { prisma } from "@stride/database";
 import { env } from "../config/env.js";
 
 /**
- * Embedding pipeline — supports future "find similar" and duplicate-detection features.
+ * Embedding pipeline — powers "Itens semelhantes" on listing detail pages
+ * and supports future duplicate-detection features.
  *
  * Flow:
  * 1. Concatenate title + description + tags

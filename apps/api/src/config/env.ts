@@ -8,6 +8,9 @@ const envSchema = z.object({
   WEB_ORIGIN: z.string().url(),
   STORAGE_LOCAL_PATH: z.string().default("./uploads"),
   REDIS_URL: z.string().optional(),
+  STRAVA_CLIENT_ID: z.string().optional(),
+  STRAVA_CLIENT_SECRET: z.string().optional(),
+  STRAVA_REDIRECT_URI: z.string().url().optional(),
 });
 
 export const env = envSchema.parse({
@@ -18,4 +21,7 @@ export const env = envSchema.parse({
   WEB_ORIGIN: process.env.WEB_ORIGIN,
   STORAGE_LOCAL_PATH: process.env.STORAGE_LOCAL_PATH,
   REDIS_URL: process.env.REDIS_URL,
+  STRAVA_CLIENT_ID: process.env.STRAVA_CLIENT_ID,
+  STRAVA_CLIENT_SECRET: process.env.STRAVA_CLIENT_SECRET,
+  STRAVA_REDIRECT_URI: process.env.STRAVA_REDIRECT_URI,
 });

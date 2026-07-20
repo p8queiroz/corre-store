@@ -86,6 +86,7 @@ export const typeDefs = /* GraphQL */ `
     ): ListingConnection!
     featuredListings(limit: Int): [Listing!]!
     trendingListings(limit: Int): [Listing!]!
+    similarListings(slug: String!, limit: Int): [Listing!]!
     homepageBanners: [HomepageBanner!]!
   }
 `;

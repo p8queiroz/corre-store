@@ -10,6 +10,7 @@ import { AppError } from "../middleware/error-handler.js";
 import { enqueueJob } from "./queue.service.js";
 import { JOB_QUEUES } from "@stride/shared";
 import { categorySlugsForQuery, searchTerms } from "./search-intent.service.js";
+import { cosineSimilarity } from "../lib/vector.js";
 
 function slugify(title: string): string {
   return title
@@ -18,6 +19,12 @@ function slugify(title: string): string {
     .replace(/(^-|-$)/g, "")
     .slice(0, 80);
 }
+
+const publicListingCardInclude = {
+  images: { orderBy: { sortOrder: "asc" as const }, take: 1 },
+  category: true,
+  seller: { select: { id: true, name: true, avatarUrl: true } },
+};
 
 export const listingService = {
   async search(raw: unknown) {
@@ -118,6 +125,64 @@ export const listingService = {
     });
 
     return listing;
+  },
+
+  /**
+   * Rank related ACTIVE listings by cosine similarity on Listing.embedding.
+   * Falls back to same-category recency when embeddings are missing
+   * (e.g. OpenAI key unset or embedding job still pending).
+   */
+  async findSimilar(slug: string, limit = 4) {
+    const capped = Math.min(Math.max(limit, 1), 12);
+    const source = await prisma.listing.findUnique({
+      where: { slug },
+      select: { id: true, embedding: true, categoryId: true },
+    });
+    if (!source) return [];
+
+    const activeWhere = {
+      status: ListingStatus.ACTIVE,
+      moderation: ModerationDecision.APPROVED,
+      id: { not: source.id },
+    };
+
+    const sameCategory = await prisma.listing.findMany({
+      where: { ...activeWhere, categoryId: source.categoryId },
+      take: 64,
+      include: publicListingCardInclude,
+      orderBy: { publishedAt: "desc" },
+    });
+
+    let pool = sameCategory;
+    if (pool.length < capped * 3) {
+      const extra = await prisma.listing.findMany({
+        where: {
+          ...activeWhere,
+          id: { notIn: [source.id, ...pool.map((item) => item.id)] },
+        },
+        take: 64,
+        include: publicListingCardInclude,
+        orderBy: { publishedAt: "desc" },
+      });
+      pool = [...pool, ...extra];
+    }
+
+    if (source.embedding.length > 0) {
+      const ranked = pool
+        .filter((item) => item.embedding.length === source.embedding.length)
+        .map((listing) => ({
+          listing,
+          score: cosineSimilarity(source.embedding, listing.embedding),
+        }))
+        .filter((row) => Number.isFinite(row.score) && row.score > 0.15)
+        .sort((a, b) => b.score - a.score)
+        .slice(0, capped)
+        .map((row) => row.listing);
+
+      if (ranked.length) return ranked;
+    }
+
+    return sameCategory.slice(0, capped);
   },
 
   async create(sellerId: string, raw: CreateListingInput) {

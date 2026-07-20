@@ -150,7 +150,8 @@ Upgrade path documented in Workers.
 | Feature                 | Sync (API)            | Async (Worker)      |
 | ----------------------- | --------------------- | ------------------- |
 | Listing assistant       | ✓ GPT chat completion | —                   |
-| NL search keyword parse | ✓                     | Embedding optional  |
+| Similar listings        | ✓ cosine on embedding | ✓ build embeddings  |
+| NL search keyword parse | ✓ (optional)          | Embedding optional  |
 | Semantic embeddings     | —                     | ✓                   |
 | Content moderation      | —                     | ✓ OpenAI moderation |
 | Seller insights         | Future dashboard      | ✓ batch analytics   |
@@ -161,7 +162,7 @@ Upgrade path documented in Workers.
 - **Stateless API** — scale horizontally behind a load balancer; session cookie must be sticky or use Redis session store.
 - **Worker scaling** — run multiple worker instances with `FOR UPDATE SKIP LOCKED` job claiming (not implemented in v0 — exercise for you).
 - **CDN** — serve images from S3 + CloudFront; API only stores URLs.
-- **Search** — migrate `embedding` to `pgvector` for cosine similarity at scale.
+- **Search** — keep buyer search on keyword/category/tag filters; use `Listing.embedding` for similar listings (in-process cosine today, migrate to `pgvector` at scale).
 
 ### Folder conventions
 
@@ -464,7 +465,7 @@ Marketplace core:
 | `priceCents`    | Integer money — never float currency                |
 | `status`        | Lifecycle: draft → pending → active → sold          |
 | `moderation`    | AI + admin gate                                     |
-| `embedding`     | `Float[]` for future similarity and duplicate checks |
+| `embedding`     | `Float[]` cosine ranking for similar listings (pgvector later) |
 | `trendingScore` | Denormalized rank — updated by worker               |
 
 
@@ -493,7 +494,8 @@ npm run db:migrate
 `prisma/seed.ts` creates:
 
 - 1 admin (not registrable via UI)
-- 1 seller with active listing
+- 1 seller with several ACTIVE listings (shoes, hydration, wearable)
+- Demo `embedding` vectors so similar listings work without OpenAI
 - 1 buyer
 - Categories for running niche
 - Homepage banner
@@ -523,6 +525,7 @@ Add `ListingPriceHistory` to power AI pricing suggestions in seller dashboard.
 
 - Homepage aggregated query (`HOMEPAGE_QUERY`)
 - Listing search with filters
+- Listing detail + similar listings (`LISTING_DETAIL_QUERY`)
 - Public read-heavy endpoints
 
 #### Example: homepage query
@@ -531,6 +534,15 @@ Add `ListingPriceHistory` to power AI pricing suggestions in seller dashboard.
 query Homepage {
   categories { slug name }
   featuredListings(limit: 8) { title slug priceCents }
+}
+```
+
+#### Example: similar listings
+
+```graphql
+query ListingDetail($slug: String!) {
+  listing(slug: $slug) { title slug }
+  similarListings(slug: $slug, limit: 4) { title slug priceCents }
 }
 ```
 
@@ -639,7 +651,33 @@ flowchart LR
 
 This avoids spending LLM budget on high-volume search when the AI layer does not materially improve results over the existing keyword/category/tag matching.
 
-### 3. AI Moderation
+Embeddings are still valuable — they power **similar listings** on detail pages (below), not the search box.
+
+### 3. Similar listings (“Itens semelhantes”)
+
+**Goal:** Make stored `Listing.embedding` visible to buyers without putting an LLM in the search path.
+
+#### Pipeline
+
+```mermaid
+flowchart LR
+  A[Listing create/update] --> B[Worker AI_EMBEDDING]
+  B --> C[Listing.embedding Float array]
+  D[Detail page] --> E[GraphQL similarListings]
+  E --> F[cosineSimilarity vs candidate pool]
+  F --> G[Itens semelhantes cards]
+```
+
+1. **Async:** Worker (`ai-embedding.processor.ts`) embeds title + description + tags with `text-embedding-3-small` and stores the vector on the listing.
+2. **Sync read:** `listingService.findSimilar(slug)` loads the source embedding, scores a bounded pool of ACTIVE/APPROVED candidates with cosine similarity (`apps/api/src/lib/vector.ts`), and returns the top matches.
+3. **Fallback:** If embeddings are missing (no API key / job pending), return same-category listings by recency so the UI still works in local demo.
+4. **UI:** Listing detail (`/listings/[slug]`) queries `similarListings` alongside `listing` and renders `ListingCard`s under **Itens semelhantes**.
+
+Also available as tRPC `listings.similar` for typed clients.
+
+**Upgrade:** Replace in-process scoring with `pgvector` / ANN indexes when the catalog grows.
+
+### 4. AI Moderation
 
 Triggered when seller submits listing:
 
@@ -659,7 +697,7 @@ Worker (`ai-moderation.processor.ts`):
 
 Compare new listing embedding to existing active listings; flag if cosine similarity > 0.92.
 
-### 4. AI Chat Assistant
+### 5. AI Chat Assistant
 
 tRPC `ai.chat`:
 
@@ -669,7 +707,7 @@ tRPC `ai.chat`:
 
 **Next step:** Add function tool `searchListings(query)` that calls `listingService.search`.
 
-### 5. AI Insights Dashboard (seller)
+### 6. AI Insights Dashboard (seller)
 
 Planned metrics (worker batch or on-demand):
 
@@ -688,6 +726,7 @@ Implement in `apps/web/src/app/dashboard` + worker `trending.processor.ts` patte
 
 - Use `gpt-4o-mini` for high-volume tasks
 - Keep high-volume buyer search off LLM calls unless ranking quality clearly improves
+- Prefer embeddings for similar listings (cheap read path) over LLM-in-search
 - Cache embeddings — don't re-embed unchanged listings
 - Log moderation decisions in `ModerationLog`
 - Rate-limit AI endpoints per user (extend `RATE_LIMITS`)
@@ -704,9 +743,9 @@ Restart **both** API and worker after setting.
 
 1. Get listing assistant working with real API key
 2. Run seed listing through moderation worker — inspect `ModerationLog`
-3. Evaluate vector-based ranking only if it demonstrably improves search quality
+3. Open a listing detail page — confirm **Itens semelhantes** ranks by embedding cosine
 4. Wire chatbot to real search tool
-
+5. Optional: evaluate vector ranking for search only if it beats keyword quality
 ---
 
 ## 8. Workers
@@ -1137,10 +1176,12 @@ Read Authentication
 1. Submit listing with edgy text (in dev)
 2. Inspect `ModerationLog` in database
 
-#### Step 15: Embeddings
+#### Step 15: Embeddings & similar listings
 
-1. Confirm `listing.embedding` populated after job
-2. Plan pgvector upgrade (documented in architecture)
+1. Confirm `listing.embedding` populated after the embedding job (or via seed demo vectors)
+2. Open `/listings/[slug]` and inspect **Itens semelhantes**
+3. Trace `similarListings` → `listingService.findSimilar` → cosine similarity
+4. Plan pgvector upgrade when the catalog outgrows in-process scoring
 
 #### Step 16: Chat assistant
 
@@ -1180,7 +1221,7 @@ Read Authentication
 
 ### Suggested capstone projects
 
-1. **Semantic search** with pgvector + "more like this"
+1. **pgvector upgrade** for similar listings (and optional semantic search) at scale
 2. **Seller analytics dashboard** with AI pricing tips
 3. **Duplicate listing detector** using embeddings
 4. **Mobile app** using JWT + same GraphQL API

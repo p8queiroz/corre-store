@@ -17,6 +17,7 @@ import { adminService } from "../services/admin.service.js";
 import { ListingStatus, UserRole, UserStatus } from "@stride/database";
 import { accountService } from "../services/account.service.js";
 import { contactService } from "../services/contact.service.js";
+import { stravaService } from "../services/strava.service.js";
 
 /**
  * tRPC — end-to-end type safety between API and Next.js client.
@@ -49,6 +50,10 @@ export const appRouter = router({
     deactivate: protectedProcedure.mutation(({ ctx }) =>
       accountService.deactivate(ctx.session.userId)
     ),
+
+    sellerVerification: protectedProcedure.query(({ ctx }) =>
+      stravaService.verificationStatus(ctx.session.userId)
+    ),
   }),
 
   listings: router({
@@ -59,6 +64,17 @@ export const appRouter = router({
     bySlug: publicProcedure
       .input(z.object({ slug: z.string() }))
       .query(({ input }) => listingService.getBySlug(input.slug)),
+
+    similar: publicProcedure
+      .input(
+        z.object({
+          slug: z.string().min(1),
+          limit: z.coerce.number().int().min(1).max(12).default(4),
+        })
+      )
+      .query(({ input }) =>
+        listingService.findSimilar(input.slug, input.limit)
+      ),
 
     publicSeller: publicProcedure
       .input(z.object({ userId: z.string().cuid() }))

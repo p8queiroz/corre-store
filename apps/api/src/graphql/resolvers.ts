@@ -18,6 +18,10 @@ export const resolvers = {
       _: unknown,
       { limit }: { limit?: number }
     ) => listingService.getTrending(limit ?? 12),
+    similarListings: (
+      _: unknown,
+      { slug, limit }: { slug: string; limit?: number }
+    ) => listingService.findSimilar(slug, limit ?? 4),
     homepageBanners: (_: unknown, __: unknown, ctx: ApiContext) =>
       ctx.prisma.homepageBanner.findMany({
         where: { active: true },
