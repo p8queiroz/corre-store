@@ -59,7 +59,7 @@ REST is used for flows that map naturally to HTTP endpoints:
 /auth/forgot-password and /auth/reset-password implement password reset.
 /uploads/listing-images accepts authenticated multipart image uploads.
 
-GraphQL is used for public marketplace reads:
+GraphQL is used for public marketplace reads. Listing fields (listing, searchListings, featuredListings, trendingListings, similarListings) are orchestrated through tRPC createCaller in-process; categories and homepageBanners still read Prisma directly.
 
 health returns ok.
 categories returns marketplace categories.
@@ -72,7 +72,7 @@ homepageBanners returns active homepage banners.
 
 tRPC is used for authenticated and typed workflows:
 
-listings.search, listings.bySlug, listings.similar, listings.create, listings.listMine, listings.getMine, listings.updateMine.
+listings.search, listings.bySlug, listings.similar, listings.featured, listings.trending, listings.create, listings.listMine, listings.getMine, listings.updateMine.
 ai.assistListing, ai.naturalLanguageSearch, ai.chat.
 favorites.list and favorites.toggle.
 admin.dashboard, admin.moderationQueue, admin.listings, admin.approveListing, admin.rejectListing, admin.setListingFeatured, admin.users, admin.promoteUser, admin.setUserStatus, admin.banners, admin.createBanner, admin.updateBanner, admin.reports, admin.resolveReport, admin.jobs.

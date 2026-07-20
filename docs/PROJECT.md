@@ -115,8 +115,8 @@ Both coexist intentionally (common in mature products):
 
 | Use case                               | Protocol    | Reason                                        |
 | -------------------------------------- | ----------- | --------------------------------------------- |
-| Homepage, search, listing detail       | **GraphQL** | Flexible reads, Apollo cache, great for feeds |
-| Seller dashboard, AI assist, favorites | **tRPC**    | End-to-end TypeScript types with Next.js      |
+| Homepage, search, listing detail       | **GraphQL** | Flexible reads; listing fields orchestrate tRPC callers |
+| Seller dashboard, AI assist, favorites | **tRPC**    | End-to-end TypeScript types with Next.js                |
 
 
 You could standardize on one — the dual setup teaches trade-offs.
@@ -531,6 +531,18 @@ Add `ListingPriceHistory` to power AI pricing suggestions in seller dashboard.
 - **Schema:** `apps/api/src/graphql/typeDefs.ts`
 - **Resolvers:** `apps/api/src/graphql/resolvers.ts`
 
+#### Orchestration pattern
+
+GraphQL is the **read orchestrator** for public marketplace pages. Listing-domain resolvers do **not** call Prisma/services directly — they use tRPC’s in-process `createCaller` (`apps/api/src/trpc/caller.ts`) so the same procedures power both `/graphql` and `/trpc`:
+
+```
+Browser → GraphQL similarListings
+            → createCaller(ctx).listings.similar
+              → listingService.findSimilar
+```
+
+No HTTP hop to `/trpc`. Categories and homepage banners still read via `ctx.prisma` until they gain dedicated procedures.
+
 #### When to use
 
 - Homepage aggregated query (`HOMEPAGE_QUERY`)
@@ -565,13 +577,25 @@ Each request builds `ApiContext` with `prisma` + session — see `apps/api/src/c
 ### tRPC layer
 
 - **Router:** `apps/api/src/trpc/router.ts`
+- **Caller (for GraphQL):** `apps/api/src/trpc/caller.ts`
 - **Client:** `apps/web/src/lib/trpc.ts`
+
+Public listing procedures used by GraphQL orchestration:
+
+| GraphQL field        | tRPC procedure        |
+| -------------------- | --------------------- |
+| `listing`            | `listings.bySlug`     |
+| `searchListings`     | `listings.search`     |
+| `featuredListings`   | `listings.featured`   |
+| `trendingListings`   | `listings.trending`   |
+| `similarListings`    | `listings.similar`    |
 
 #### When to use
 
 - Mutations needing strict types (create listing, toggle favorite)
 - AI procedures called from React hooks
 - Seller/admin dashboards (future)
+- Direct typed clients that skip GraphQL composition
 
 #### Example: create listing
 

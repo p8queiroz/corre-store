@@ -76,6 +76,26 @@ export const appRouter = router({
         listingService.findSimilar(input.slug, input.limit)
       ),
 
+    featured: publicProcedure
+      .input(
+        z
+          .object({
+            limit: z.coerce.number().int().min(1).max(48).default(8),
+          })
+          .default({ limit: 8 })
+      )
+      .query(({ input }) => listingService.getFeatured(input.limit)),
+
+    trending: publicProcedure
+      .input(
+        z
+          .object({
+            limit: z.coerce.number().int().min(1).max(48).default(12),
+          })
+          .default({ limit: 12 })
+      )
+      .query(({ input }) => listingService.getTrending(input.limit)),
+
     publicSeller: publicProcedure
       .input(z.object({ userId: z.string().cuid() }))
       .query(({ input }) => listingService.getPublicSeller(input.userId)),
